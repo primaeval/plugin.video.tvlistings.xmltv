@@ -130,16 +130,7 @@ def channel(channel_id,channel_name):
                 items.append(item)
         except:
             pass
-    '''
-    channel_url = 'http://%s.yo.tv/tv_guide/channel/%s/%s' % (country_id,channel_number,channel_name)
-        
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]Listing[/B][/COLOR]' % (re.sub('_',' ',channel_name)),
-    'path': plugin.url_for('listing', country_id=country_id, channel_name=channel_name, channel_number=channel_number, channel_url=channel_url),
-    'is_playable': False,
-    }
-    items.append(item)
-    '''    
+
     return items
 
 def utc2local (utc):
@@ -178,9 +169,7 @@ def get_url(url):
         return html
     except:
         return ''
-  
-def load_channels():
-    pass
+
 
 def store_channels():
     if plugin.get_setting('ini_reload') == 'true':
@@ -222,50 +211,9 @@ def store_channels():
             pass
     
    
-def make_templates():
-    if plugin.get_setting('make_templates') == 'true':
-        plugin.set_setting('make_templates','false')
-        
-        pDialog = xbmcgui.DialogProgressBG()
-        pDialog.create("creating template .ini files")
-        xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.yo')
-        if not xbmcvfs.exists('special://userdata/addon_data/plugin.video.tvlistings.yo/myaddons.ini'):
-            f = xbmcvfs.File('special://userdata/addon_data/plugin.video.tvlistings.yo/myaddons.ini','w')
-            f.close()
-        
-        xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.yo/templates')
-        html = get_url("http://www.yo.tv")
-        items = []
-        list_items = re.findall(r'<li><a href="http://(.*?)\.yo\.tv"  >(.*?)</a></li>',html,flags=(re.DOTALL | re.MULTILINE))
-        total = len(list_items)
-        count = 0
-        for (id,name) in list_items:   
-            percent = 100.0 *count/total
-            pDialog.update(int(percent),name)
-            count = count + 1
-            file_name = 'special://userdata/addon_data/plugin.video.tvlistings.yo/templates/%s.ini' % id
-            f = xbmcvfs.File(file_name,'w')
-            str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel reload.\n\n# %s.ini - %s \n\n[plugin.video.all]\n" % (id,name)
-            f.write(str.encode("utf8"))
-            
-            html = get_url('http://%s.yo.tv/' % id)
-            channels = html.split('<li><a data-ajax="false"')
-            unique_channels = {}
-            for channel in channels:
-                name_match = re.search(r'href="/tv_guide/channel/(.*?)/(.*?)"', channel)
-                if name_match:
-                    number = name_match.group(1)
-                    name = name_match.group(2)
-                    unique_channels[name] = number
-                    
-            for name in sorted(unique_channels):
-                str = "%s=\n" % (name)
-                f.write(str.encode("utf8"))
-            
-            f.close()
+
             
 def xml2utc(xml):
-    #log2('xml2utc')
     match = re.search(r'([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2}) ([+-])([0-9]{2})([0-9]{2})',xml)
     if match:
         year = int(match.group(1))
@@ -278,13 +226,11 @@ def xml2utc(xml):
         hours = int(match.group(8))
         minutes = int(match.group(9))
         dt = datetime(year,month,day,hour,minute,second)
-        #log2(dt)
         td = timedelta(hours=hours,minutes=minutes)
         if sign == '+':
             dt = dt - td
         else:
             dt = dt + td
-        #log2(dt)
         return dt
     return ''
             
@@ -296,12 +242,10 @@ def xml_channels():
         path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
         stat = xbmcvfs.Stat(path)
         modified = str(stat.st_mtime())
-        #log2(type(modified))
         last_modified = plugin.get_setting('xmltv_last_modified')
         if last_modified == modified:
             return
         plugin.set_setting('xmltv_last_modified', modified)
-        #log2("MODIFIED")
         
     channels = plugin.get_storage('channels')
     items = []
@@ -326,52 +270,40 @@ def xml_channels():
     tree = ET.fromstring(xml)
     for channel in tree.findall(".//channel"):
         id = channel.attrib['id']
-        #log2(id)
         display_name = channel.find('display-name').text
-        #log2(display_name)
         try:
             icon = channel.find('icon').attrib['src']
         except:
             icon = ''
-        #log2(icon)
         channels[id] = '|'.join((display_name,icon))
         write_str = "%s=\n" % (id)
         f.write(write_str.encode("utf8"))
         
     for programme in tree.findall(".//programme"):
         start = programme.attrib['start']
-        #log2(start)
         start = xml2utc(start)
-        #log2(start)
         start = utc2local(start)
-        #log2(start)
         channel = programme.attrib['channel']
-        #log2(channel)
         title = programme.find('title').text
         match = re.search(r'(.*?)"}.*?\(\?\)$',title) #BUG in webgrab
         if match:
             title = match.group(1)
-        #log2(title)
         try:
             sub_title = programme.find('sub-title').text
         except:
             sub_title = ''
-        #log2(sub_title)
         try:
             date = programme.find('date').text
         except:
             date = ''
-        #log2(date)        
         try:
             desc = programme.find('desc').text
         except:
             desc = ''
-        #log2(desc)
         try:
             episode_num = programme.find('episode-num').text
         except:
             episode_num = ''
-        #log2(episode_num)
         series = 0
         episode = 0
         match = re.search(r'(.*?)\.(.*?)[\./]',episode_num)
@@ -379,8 +311,6 @@ def xml_channels():
             try:
                 series = int(match.group(1)) + 1
                 episode = int(match.group(2)) + 1
-                #log2(series)
-                #log2(episode)
             except:
                 pass
         series = str(series)
@@ -388,7 +318,6 @@ def xml_channels():
         categories = ''
         for category in programme.findall('category'):
             categories = ','.join((categories,category.text)).strip(',')
-        #log2(categories.strip(','))
         
         programmes = plugin.get_storage(channel)
         total_seconds = time.mktime(start.timetuple())
@@ -402,8 +331,6 @@ def channels():
     items = []
     for channel_id in channels:
         (channel_name,img_url) = channels[channel_id].split('|')
-        
-        url = ''
 
         label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             
@@ -413,7 +340,7 @@ def channels():
         items.append(item)
 
     #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
-    #plugin.set_view_mode(51)
+    plugin.set_view_mode(51)
     
     sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
     return sorted_items  
@@ -466,9 +393,6 @@ def now_next():
             label = "%s [COLOR orange][B]%s[/B][/COLOR] %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
             (now,now_title,next,next_title,after,after_title)
 
-        url = ''
-
-        #label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)
@@ -476,7 +400,7 @@ def now_next():
         items.append(item)
 
     #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
-    #plugin.set_view_mode(51)
+    plugin.set_view_mode(51)
     
     sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
     return sorted_items  
@@ -499,14 +423,11 @@ def listing(channel_id,channel_name):
             season = '0'
         if not episode:
             episode = '0'
-        #log2(season)
-        #log2(episode)
         if date:
             title = "%s (%s)" % (title,date)
         if sub_title:
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
-        url = ''
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
@@ -525,10 +446,8 @@ def listing(channel_id,channel_name):
         item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode)
         items.append(item)
 
-    #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
-    #plugin.set_view_mode(51)
-    plugin.set_content('episodes')    
-    #sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
+    plugin.set_view_mode(51)
+    plugin.set_content('episodes')
     return items  
     
 
@@ -552,8 +471,6 @@ def index():
     
 if __name__ == '__main__':
     xml_channels()
-    #make_templates()
     store_channels()
-    #load_channels()
     plugin.run()
     
