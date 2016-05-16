@@ -28,10 +28,12 @@ def get_tvdb_id(name):
     if tvdb_match:
         tvdb_id = tvdb_match.group(1)
     return tvdb_id
+
   
-@plugin.route('/play/<country_id>/<channel_name>/<channel_number>/<title>/<season>/<episode>')
-def play(country_id,channel_name,channel_number,title,season,episode):
-    channel_items = channel(country_id,channel_name,channel_number)
+    
+@plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>')
+def play(channel_id,channel_name,title,season,episode):
+    channel_items = []#channel(channel_id,channel_name)
     items = []
     tvdb_id = ''
     if int(season) > 0 and int(episode) > 0:
@@ -103,7 +105,7 @@ def play(country_id,channel_name,channel_number,title,season,episode):
             except:
                 pass
    
-    items.extend(channel_items)
+    #items.extend(channel_items)
     return items
 
     
@@ -168,9 +170,9 @@ def local_time(ttime,year,month,day):
         ttime = "%02d:%02d" % (loc_dt.hour,loc_dt.minute)
     return ttime
 
-@plugin.route('/listing/<country_id>/<channel_name>/<channel_number>/<channel_url>')
-def listing(country_id,channel_name,channel_number,channel_url):
-    log2(channel_name)
+@plugin.route('/listingx/<country_id>/<channel_name>/<channel_number>/<channel_url>')
+def listingx(country_id,channel_name,channel_number,channel_url):
+    #log2(channel_name)
     html = get_url(channel_url)
 
     items = []
@@ -215,7 +217,7 @@ def listing(country_id,channel_name,channel_number,channel_url):
         
         if title:
             nice_name = re.sub('_',' ',channel_name)
-            log2(nice_name)
+            #log2(nice_name)
             if  plugin.get_setting('show_channel_name') == 'true':
                 if plugin.get_setting('show_plot') == 'true':
                     label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (nice_name,ttime,title,plot)
@@ -409,7 +411,7 @@ def xml_channels():
         start = xml2utc(start)
         #log2(start)
         start = utc2local(start)
-        log2(start)
+        #log2(start)
         channel = programme.attrib['channel']
         #log2(channel)
         title = programme.find('title').text
@@ -450,15 +452,88 @@ def xml_channels():
                 pass
         categories = ''
         for category in programme.findall('category'):
-            categories = ','.join((categories,category.text))
+            categories = ','.join((categories,category.text)).strip(',')
         #log2(categories.strip(','))
         
         programmes = plugin.get_storage(channel)
-        programmes[start] = '|'.join((title,sub_title,date,series,episode,categories,desc))
+        total_seconds = time.mktime(start.timetuple())
+        programmes[total_seconds] = '|'.join((title,sub_title,date,series,episode,categories,desc))
     
-    
+@plugin.route('/channels')
+def channels():  
+    channels = plugin.get_storage('channels')
+    items = []
+    for channel_id in channels:
+        (channel_name,img_url) = channels[channel_id].split('|')
         
+        url = ''
 
+        label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
+            
+        item = {'label':label,'icon':img_url,'thumbnail':img_url}
+        item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)
+        
+        items.append(item)
+
+    #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
+    #plugin.set_view_mode(51)
+    
+    sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
+    return sorted_items  
+    
+
+    
+@plugin.route('/listing/<channel_id>/<channel_name>')
+def listing(channel_id,channel_name):  
+    programmes = plugin.get_storage(channel_id)
+    items = []
+    last_day = ''
+    for total_seconds in sorted(programmes):
+        dt = datetime.fromtimestamp(total_seconds)
+        day = dt.day
+        if day != last_day:
+            last_day = day
+            label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
+            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)})            
+            
+        (title,sub_title,date,season,episode,categories,plot) = programmes[total_seconds].split('|')
+        if not season:
+            season = 0
+        if not episode:
+            episode = 0
+        if date:
+            title = "%s (%s)" % (title,date)
+        if sub_title:
+            plot = "[B]%s[/B]: %s" % (sub_title,plot)
+        ttime = "%02d:%02d" % (dt.hour,dt.minute)
+        url = ''
+
+        if  plugin.get_setting('show_channel_name') == 'true':
+            if plugin.get_setting('show_plot') == 'true':
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name,ttime,title,plot)
+            else:
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name,ttime,title)
+        else:
+            if plugin.get_setting('show_plot') == 'true':
+                label = "%s [COLOR orange][B]%s[/B][/COLOR] %s" % (ttime,title,plot)
+            else:
+                label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
+
+        img_url = ''
+        item = {'label':label,'icon':img_url,'thumbnail':img_url}
+        item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
+        #item['path'] = plugin.url_for('listing', channel=channel)
+
+        item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"),season=season,episode=episode)
+        items.append(item)
+
+    #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
+    #plugin.set_view_mode(51)
+    plugin.set_content('episodes')    
+    #sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
+    return items  
+    
+    
         
 @plugin.route('/listings/<country_id>/<country_name>')
 def listings(country_id,country_name):
@@ -500,8 +575,11 @@ def listings(country_id,country_name):
     #plugin.set_view_mode(51)
     return items 
 
-@plugin.route('/channels/<country_id>/<country_name>')
-def channels(country_id,country_name):
+    
+    
+    
+@plugin.route('/channelsx/<country_id>/<country_name>')
+def channelsx(country_id,country_name):
     html = get_url('http://%s.yo.tv/' % country_id)
     
     channels = html.split('<li><a data-ajax="false"')
@@ -651,51 +729,15 @@ def set_favourites():
     return top_items
     
 
-@plugin.route('/country/<country_id>/<country_name>')
-def country(country_id,country_name):
-    items = [  
-    {
-        'label': '[COLOR red][B]%s[/B][/COLOR]: [COLOR green]Now Next After[/COLOR]' % country_name,
-        'path': plugin.url_for('now_next', country_id=country_id, country_name=country_name)
 
-    },
-    {
-        'label': '[COLOR red][B]%s[/B][/COLOR]: [COLOR yellow]Channels[/COLOR]' % country_name,
-        'path': plugin.url_for('channels', country_id=country_id, country_name=country_name)
-
-    },     
-    {
-        'label': '[COLOR red][B]%s[/B][/COLOR]: [COLOR red]Listings[/COLOR]' % country_name,
-        'path': plugin.url_for('listings', country_id=country_id, country_name=country_name)
-
-    },
-    ]
-    return items
-            
-@plugin.route('/counties')
-def countries():
-    html = get_url("http://www.yo.tv")
-
-    items = []
-
-    
-    list_items = re.findall(r'<li><a href="http://(.*?)\.yo\.tv"  >(.*?)</a></li>',html,flags=(re.DOTALL | re.MULTILINE))
-    
-    for (country_id,country_name) in list_items:
-        country_name = country_name.encode("utf8")
-        items.append({'label': '[COLOR red][B]%s[/B][/COLOR]' % country_name,'path': plugin.url_for('country', country_id=country_id, country_name=country_name)})
-
-    plugin.set_content('episodes')    
-    plugin.set_view_mode(51)
-    return items
     
     
 @plugin.route('/')
 def index():
     items = [  
     {
-        'label': '[COLOR red][B]Countries[/B][/COLOR]',
-        'path': plugin.url_for('countries'),
+        'label': '[COLOR yellow][B]Channels[/B][/COLOR]',
+        'path': plugin.url_for('channels'),
 
     },    
     ]
