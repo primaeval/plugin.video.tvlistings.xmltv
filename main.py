@@ -33,7 +33,7 @@ def get_tvdb_id(name):
     
 @plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>')
 def play(channel_id,channel_name,title,season,episode):
-    channel_items = []#channel(channel_id,channel_name)
+    channel_items = channel(channel_id,channel_name)
     items = []
     tvdb_id = ''
     if int(season) > 0 and int(episode) > 0:
@@ -105,15 +105,12 @@ def play(channel_id,channel_name,title,season,episode):
             except:
                 pass
    
-    #items.extend(channel_items)
+    items.extend(channel_items)
     return items
 
     
-@plugin.route('/channel/<country_id>/<channel_name>/<channel_number>')
-def channel(country_id,channel_name,channel_number):
-    if plugin.get_setting('ini_reload') == 'true':
-        store_channels()
-        plugin.set_setting('ini_reload','false')
+@plugin.route('/channel/<channel_id>/<channel_name>')
+def channel(channel_id,channel_name):
     
     addons = plugin.get_storage('addons')
     items = []
@@ -133,7 +130,7 @@ def channel(country_id,channel_name,channel_number):
                 items.append(item)
         except:
             pass
-
+    '''
     channel_url = 'http://%s.yo.tv/tv_guide/channel/%s/%s' % (country_id,channel_number,channel_name)
         
     item = {
@@ -142,7 +139,7 @@ def channel(country_id,channel_name,channel_number):
     'is_playable': False,
     }
     items.append(item)
-        
+    '''    
     return items
 
 def utc2local (utc):
@@ -271,7 +268,8 @@ def load_channels():
 
 def store_channels():
     if plugin.get_setting('ini_reload') == 'true':
-        plugin.set_setting('ini_reload','false')
+        #TEST plugin.set_setting('ini_reload','false')
+        pass
     else:
         return
         
@@ -389,9 +387,17 @@ def xml_channels():
         programmes.clear()
     channels.clear()
         
-        
+    xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
+    if not xbmcvfs.exists('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini'):
+        f = xbmcvfs.File('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini','w')
+        f.close()
+
+    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/template.ini'
+    f = xbmcvfs.File(file_name,'w')
+    write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel reload.\n\n[plugin.video.all]\n"
+    f.write(write_str.encode("utf8"))
+
     import xml.etree.ElementTree as ET
-    
     tree = ET.parse(xbmc.translatePath(plugin.get_setting('xmltv_file')))
     for channel in tree.findall(".//channel"):
         id = channel.attrib['id']
@@ -404,6 +410,8 @@ def xml_channels():
             icon = ''
         #log2(icon)
         channels[id] = '|'.join((display_name,icon))
+        write_str = "%s=\n" % (id)
+        f.write(write_str.encode("utf8"))
         
     for programme in tree.findall(".//programme"):
         start = programme.attrib['start']
@@ -438,18 +446,20 @@ def xml_channels():
             episode_num = programme.find('episode-num').text
         except:
             episode_num = ''
-        #log2(episode_num)
-        series = ''
-        episode = ''
+        log2(episode_num)
+        series = 0
+        episode = 0
         match = re.search(r'(.*?)\.(.*?)[\./]',episode_num)
         if match:
             try:
-                series = str(int(match.group(1)) + 1)
-                episode = str(int(match.group(2)) + 1)
-                #log2(series)
-                #log2(episode)
+                series = int(match.group(1)) + 1
+                episode = int(match.group(2)) + 1
+                log2(series)
+                log2(episode)
             except:
                 pass
+        series = str(series)
+        episode = str(episode)
         categories = ''
         for category in programme.findall('category'):
             categories = ','.join((categories,category.text)).strip(',')
@@ -458,7 +468,9 @@ def xml_channels():
         programmes = plugin.get_storage(channel)
         total_seconds = time.mktime(start.timetuple())
         programmes[total_seconds] = '|'.join((title,sub_title,date,series,episode,categories,desc))
-    
+
+        
+        
 @plugin.route('/channels')
 def channels():  
     channels = plugin.get_storage('channels')
@@ -498,9 +510,11 @@ def listing(channel_id,channel_name):
             
         (title,sub_title,date,season,episode,categories,plot) = programmes[total_seconds].split('|')
         if not season:
-            season = 0
+            season = '0'
         if not episode:
-            episode = 0
+            episode = '0'
+        log2(season)
+        log2(episode)
         if date:
             title = "%s (%s)" % (title,date)
         if sub_title:
@@ -522,9 +536,7 @@ def listing(channel_id,channel_name):
         img_url = ''
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
-        #item['path'] = plugin.url_for('listing', channel=channel)
-
-        item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"),season=season,episode=episode)
+        item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode)
         items.append(item)
 
     #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
@@ -746,7 +758,7 @@ def index():
 if __name__ == '__main__':
     xml_channels()
     #make_templates()
-    #store_channels()
+    store_channels()
     #load_channels()
     plugin.run()
     
