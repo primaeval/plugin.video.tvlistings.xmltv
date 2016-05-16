@@ -349,7 +349,79 @@ def make_templates():
             
             f.close()
 
+def xml_channels():
+    if plugin.get_setting('xml_reload') == 'true':
+        #TESTplugin.set_setting('xml_reload','false')
+        pass
+    else:
+        return
         
+    
+        
+        
+    import xml.etree.ElementTree as ET
+    
+    tree = ET.parse(xbmc.translatePath(plugin.get_setting('xmltv_file')))
+    for channel in tree.findall(".//channel"):
+        id = channel.attrib['id']
+        log2(id)
+        display_name = channel.find('display-name').text
+        log2(display_name)
+        try:
+            icon = channel.find('icon').attrib['src']
+        except:
+            icon = ''
+        log2(icon)
+        
+    for programme in tree.findall(".//programme"):
+        start = programme.attrib['start']
+        log2(start)
+        channel = programme.attrib['channel']
+        log2(channel)
+        title = programme.find('title').text
+        match = re.search(r'(.*?)"}.*?\(\?\)$',title)
+        if match:
+            title = match.group(1)
+        log2(title)
+        try:
+            sub_title = programme.find('sub-title').text
+        except:
+            sub_title = ''
+        log2(sub_title)
+        try:
+            date = programme.find('date').text
+        except:
+            date = ''
+        log2(date)        
+        try:
+            desc = programme.find('desc').text
+        except:
+            desc = ''
+        log2(desc)
+        try:
+            episode_num = programme.find('episode-num').text
+        except:
+            episode_num = ''
+        log2(episode_num)
+        series = ''
+        episode = ''
+        match = re.search(r'(.*?)\.(.*?)[\./]',episode_num)
+        if match:
+            try:
+                series = str(int(match.group(1)) + 1)
+                episode = str(int(match.group(2)) + 1)
+                log2(series)
+                log2(episode)
+            except:
+                pass
+        categories = ''
+        for category in programme.findall('category'):
+            categories = ','.join((categories,category.text))
+        log2(categories.strip(','))
+    
+    
+        
+
         
 @plugin.route('/listings/<country_id>/<country_name>')
 def listings(country_id,country_name):
@@ -593,8 +665,9 @@ def index():
     return items
     
 if __name__ == '__main__':
-    make_templates()
-    store_channels()
+    xml_channels()
+    #make_templates()
+    #store_channels()
     #load_channels()
     plugin.run()
     

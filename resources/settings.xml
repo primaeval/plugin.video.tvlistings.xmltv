@@ -5,10 +5,13 @@
 <setting id="show_plot" label="Show Plot" type="bool" default="true" />
 </category>
 <category label="Data">
-<setting id="ini_file1" label="1st stream .ini file" type="file" mask="*.ini" default="special://home/addons/plugin.video.tvlistings.yo/resources/addons.ini" />
-<setting id="ini_file2" label="2nd stream .ini file" type="file" mask="*.ini" default="special://userdata/addon_data/plugin.video.tvlistings.yo/myaddons.ini" />
+<setting id="xmltv_file" label="xmltv.xml file" type="file" mask="*.xml" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/xmltv.xml" />
+<setting id="xml_reload" label="(Re)load .xml file" type="bool" default="true" />
+<setting type="sep"/>
+<setting id="ini_file1" label="1st stream .ini file" type="file" mask="*.ini" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/addons.ini" />
+<setting id="ini_file2" label="2nd stream .ini file" type="file" mask="*.ini" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini" />
 <setting id="ini_reload" label="(Re)load .ini files" type="bool" default="true" />
 <setting type="sep"/>
-<setting id="make_templates" label="Make channel template .ini files" type="bool" default="false" />
+<setting id="make_templates" label="Make channel template .ini files" type="bool" default="true" />
 </category>
 </settings>
