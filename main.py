@@ -4,7 +4,7 @@ import re
 
 import requests
 
-from datetime import datetime
+from datetime import datetime,timedelta
 import time
 
 import HTMLParser
@@ -348,7 +348,31 @@ def make_templates():
                 f.write(str.encode("utf8"))
             
             f.close()
-
+            
+def xml2utc(xml):
+    #log2('xml2utc')
+    match = re.search(r'([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2}) ([+-])([0-9]{2})([0-9]{2})',xml)
+    if match:
+        year = int(match.group(1))
+        month = int(match.group(2))
+        day = int(match.group(3))
+        hour = int(match.group(4))
+        minute = int(match.group(5))
+        second = int(match.group(6))
+        sign = match.group(7)
+        hours = int(match.group(8))
+        minutes = int(match.group(9))
+        dt = datetime(year,month,day,hour,minute,second)
+        #log2(dt)
+        td = timedelta(hours=hours,minutes=minutes)
+        if sign == '+':
+            dt = dt - td
+        else:
+            dt = dt + td
+        #log2(dt)
+        return dt
+    return ''
+            
 def xml_channels():
     if plugin.get_setting('xml_reload') == 'true':
         #TESTplugin.set_setting('xml_reload','false')
@@ -369,46 +393,50 @@ def xml_channels():
     tree = ET.parse(xbmc.translatePath(plugin.get_setting('xmltv_file')))
     for channel in tree.findall(".//channel"):
         id = channel.attrib['id']
-        log2(id)
+        #log2(id)
         display_name = channel.find('display-name').text
-        log2(display_name)
+        #log2(display_name)
         try:
             icon = channel.find('icon').attrib['src']
         except:
             icon = ''
-        log2(icon)
+        #log2(icon)
         channels[id] = '|'.join((display_name,icon))
         
     for programme in tree.findall(".//programme"):
         start = programme.attrib['start']
+        #log2(start)
+        start = xml2utc(start)
+        #log2(start)
+        start = utc2local(start)
         log2(start)
         channel = programme.attrib['channel']
-        log2(channel)
+        #log2(channel)
         title = programme.find('title').text
-        match = re.search(r'(.*?)"}.*?\(\?\)$',title)
+        match = re.search(r'(.*?)"}.*?\(\?\)$',title) #BUG in webgrab
         if match:
             title = match.group(1)
-        log2(title)
+        #log2(title)
         try:
             sub_title = programme.find('sub-title').text
         except:
             sub_title = ''
-        log2(sub_title)
+        #log2(sub_title)
         try:
             date = programme.find('date').text
         except:
             date = ''
-        log2(date)        
+        #log2(date)        
         try:
             desc = programme.find('desc').text
         except:
             desc = ''
-        log2(desc)
+        #log2(desc)
         try:
             episode_num = programme.find('episode-num').text
         except:
             episode_num = ''
-        log2(episode_num)
+        #log2(episode_num)
         series = ''
         episode = ''
         match = re.search(r'(.*?)\.(.*?)[\./]',episode_num)
@@ -416,14 +444,14 @@ def xml_channels():
             try:
                 series = str(int(match.group(1)) + 1)
                 episode = str(int(match.group(2)) + 1)
-                log2(series)
-                log2(episode)
+                #log2(series)
+                #log2(episode)
             except:
                 pass
         categories = ''
         for category in programme.findall('category'):
             categories = ','.join((categories,category.text))
-        log2(categories.strip(','))
+        #log2(categories.strip(','))
         
         programmes = plugin.get_storage(channel)
         programmes[start] = '|'.join((title,sub_title,date,series,episode,categories,desc))
