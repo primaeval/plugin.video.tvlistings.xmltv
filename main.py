@@ -339,7 +339,6 @@ def channels():
         
         items.append(item)
 
-    #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
     plugin.set_view_mode(51)
     
     sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
@@ -399,7 +398,6 @@ def now_next():
         
         items.append(item)
 
-    #plugin.add_sort_method(xbmcplugin.SORT_METHOD_TITLE)
     plugin.set_view_mode(51)
     
     sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
