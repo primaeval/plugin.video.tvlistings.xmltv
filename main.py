@@ -356,7 +356,12 @@ def xml_channels():
     else:
         return
         
-    
+    channels = plugin.get_storage('channels')
+    items = []
+    for channel in channels:
+        programmes = plugin.get_storage(channel)
+        programmes.clear()
+    channels.clear()
         
         
     import xml.etree.ElementTree as ET
@@ -372,6 +377,7 @@ def xml_channels():
         except:
             icon = ''
         log2(icon)
+        channels[id] = '|'.join((display_name,icon))
         
     for programme in tree.findall(".//programme"):
         start = programme.attrib['start']
@@ -418,6 +424,9 @@ def xml_channels():
         for category in programme.findall('category'):
             categories = ','.join((categories,category.text))
         log2(categories.strip(','))
+        
+        programmes = plugin.get_storage(channel)
+        programmes[start] = '|'.join((title,sub_title,date,series,episode,categories,desc))
     
     
         
