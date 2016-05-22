@@ -268,6 +268,7 @@ def xml_channels():
     f = xbmcvfs.File(plugin.get_setting('xmltv_file'))
     xml = f.read()
     tree = ET.fromstring(xml)
+    order = 0
     for channel in tree.findall(".//channel"):
         id = channel.attrib['id']
         display_name = channel.find('display-name').text
@@ -275,9 +276,10 @@ def xml_channels():
             icon = channel.find('icon').attrib['src']
         except:
             icon = ''
-        channels[id] = '|'.join((display_name,icon))
+        channels[id] = '|'.join((display_name,icon,"%06d" % order))
         write_str = "%s=\n" % (id)
         f.write(write_str.encode("utf8"))
+        order = order + 1
         
     for programme in tree.findall(".//programme"):
         start = programme.attrib['start']
@@ -330,18 +332,19 @@ def channels():
     channels = plugin.get_storage('channels')
     items = []
     for channel_id in channels:
-        (channel_name,img_url) = channels[channel_id].split('|')
+        (channel_name,img_url,order) = channels[channel_id].split('|')
 
         label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)
+        item['info'] = {'sorttitle' : order}
         
         items.append(item)
 
     plugin.set_view_mode(51)
-    
-    sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
+
+    sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
     return sorted_items  
     
 @plugin.route('/now_next')
@@ -350,8 +353,9 @@ def now_next():
     now = datetime.now()
     total_seconds = time.mktime(now.timetuple())
     items = []
+
     for channel_id in channels:
-        (channel_name,img_url) = channels[channel_id].split('|')
+        (channel_name,img_url,order) = channels[channel_id].split('|')
         
         programmes = plugin.get_storage(channel_id)
         times = sorted(programmes)
@@ -395,12 +399,13 @@ def now_next():
             
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)
+        item['info'] = {'sorttitle' : order}
         
         items.append(item)
 
     plugin.set_view_mode(51)
-    
-    sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
+    #plugin.set_content('episodes')
+    sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
     return sorted_items  
     
 @plugin.route('/listing/<channel_id>/<channel_name>')
