@@ -265,8 +265,8 @@ def xml_channels():
     f.write(write_str.encode("utf8"))
 
     import xml.etree.ElementTree as ET
-    f = xbmcvfs.File(plugin.get_setting('xmltv_file'))
-    xml = f.read()
+    xml_f = xbmcvfs.File(plugin.get_setting('xmltv_file'))
+    xml = xml_f.read()
     tree = ET.fromstring(xml)
     order = 0
     for channel in tree.findall(".//channel"):
