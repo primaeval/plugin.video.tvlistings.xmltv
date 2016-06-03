@@ -6,6 +6,7 @@ xmltv TV Listings with catchup playback via Meta4Kodi and live playback via addo
 
 * Now/Next/After
 * Channel Listings
+* Programme Search
 
 ## Notes
 * Huge xmltv files will take forever and may run out of memory.
