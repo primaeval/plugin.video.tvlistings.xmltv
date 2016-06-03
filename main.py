@@ -453,9 +453,58 @@ def listing(channel_id,channel_name):
     plugin.set_content('episodes')
     return items  
     
+@plugin.route('/search/<programme_name>')
+def search(programme_name):
+    channels = plugin.get_storage('channels')
+    programme_name_lower = programme_name.encode("utf8").lower()
+    items = []
+    for channel_id in channels:
+        (channel_name,img_url,order) = channels[channel_id].split('|')
+        programmes = plugin.get_storage(channel_id)
+        for total_seconds in programmes:
+            (title,sub_title,date,season,episode,categories,plot) = programmes[total_seconds].split('|')
+            title_lower = title.encode("utf8").lower()
+            match = re.search(programme_name_lower,title_lower)
+            if match:
+                dt = datetime.fromtimestamp(total_seconds)
+                if not season:
+                    season = '0'
+                if not episode:
+                    episode = '0'
+                if date:
+                    title = "%s (%s)" % (title,date)
+                if sub_title:
+                    plot = "[B]%s[/B]: %s" % (sub_title,plot)
+                ttime = "%02d/%02d/%04d %02d:%02d" % (dt.day,dt.month,dt.year,dt.hour,dt.minute)
 
+                if  plugin.get_setting('show_channel_name') == 'true':
+                    if plugin.get_setting('show_plot') == 'true':
+                        label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name,ttime,title,plot)
+                    else:
+                        label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name,ttime,title)
+                else:
+                    if plugin.get_setting('show_plot') == 'true':
+                        label = "%s [COLOR orange][B]%s[/B][/COLOR] %s" % (ttime,title,plot)
+                    else:
+                        label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
+
+                item = {'label':label,'icon':img_url,'thumbnail':img_url}
+                item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
+                item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode)
+                items.append(item)
+    plugin.set_view_mode(51)
+    plugin.set_content('episodes')
+    return items 
     
     
+@plugin.route('/search_dialog')
+def search_dialog():
+    dialog = xbmcgui.Dialog()
+    name = dialog.input('Search for programme', type=xbmcgui.INPUT_ALPHANUM)
+    if name:
+        return search(name)
+     
+
 @plugin.route('/')
 def index():
     items = [  
@@ -467,6 +516,11 @@ def index():
     {
         'label': '[COLOR red][B]Listings[/B][/COLOR]',
         'path': plugin.url_for('channels'),
+
+    },
+    {
+        'label': '[COLOR yellow][B]Search[/B][/COLOR]',
+        'path': plugin.url_for('search_dialog'),
 
     },    
     ]
