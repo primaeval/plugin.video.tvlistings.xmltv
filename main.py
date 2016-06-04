@@ -337,7 +337,7 @@ def channels():
         label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)
+        item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name.encode("utf8"))
         item['info'] = {'sorttitle' : order}
         
         items.append(item)
@@ -396,9 +396,8 @@ def now_next():
             label = "%s [COLOR orange][B]%s[/B][/COLOR] %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
             (now,now_title,next,next_title,after,after_title)
 
-            
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)
+        item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name.encode("utf8"))
         item['info'] = {'sorttitle' : order}
         
         items.append(item)
@@ -431,12 +430,12 @@ def listing(channel_id,channel_name):
         if sub_title:
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
-
+        channel_name_u = unicode(channel_name,'utf-8')
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name,ttime,title,plot)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name_u,ttime,title,plot)
             else:
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name,ttime,title)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name_u,ttime,title)
         else:
             if plugin.get_setting('show_plot') == 'true':
                 label = "%s [COLOR orange][B]%s[/B][/COLOR] %s" % (ttime,title,plot)
