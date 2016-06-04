@@ -6,7 +6,7 @@ import requests
 
 from datetime import datetime,timedelta
 import time
-
+import urllib
 import HTMLParser
 import xbmcplugin
 
@@ -250,6 +250,7 @@ def xml_channels():
     channels = plugin.get_storage('channels')
     items = []
     for channel in channels:
+        channel = urllib.quote_plus(channel.encode("utf8"))
         programmes = plugin.get_storage(channel)
         programmes.clear()
     channels.clear()
@@ -321,6 +322,7 @@ def xml_channels():
         for category in programme.findall('category'):
             categories = ','.join((categories,category.text)).strip(',')
         
+        channel = urllib.quote_plus(channel.encode("utf8"))
         programmes = plugin.get_storage(channel)
         total_seconds = time.mktime(start.timetuple())
         programmes[total_seconds] = '|'.join((title,sub_title,date,series,episode,categories,desc))
@@ -337,7 +339,7 @@ def channels():
         label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name.encode("utf8"))
+        item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         item['info'] = {'sorttitle' : order}
         
         items.append(item)
@@ -356,8 +358,8 @@ def now_next():
 
     for channel_id in channels:
         (channel_name,img_url,order) = channels[channel_id].split('|')
-        
-        programmes = plugin.get_storage(channel_id)
+        channel = urllib.quote_plus(channel_id.encode("utf8"))
+        programmes = plugin.get_storage(channel)
         times = sorted(programmes)
         max = len(times)
         less = [i for i in times if i < total_seconds]
@@ -397,7 +399,7 @@ def now_next():
             (now,now_title,next,next_title,after,after_title)
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name.encode("utf8"))
+        item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         item['info'] = {'sorttitle' : order}
         
         items.append(item)
@@ -409,7 +411,7 @@ def now_next():
     
 @plugin.route('/listing/<channel_id>/<channel_name>')
 def listing(channel_id,channel_name):  
-    programmes = plugin.get_storage(channel_id)
+    programmes = plugin.get_storage(urllib.quote_plus(channel_id))
     items = []
     last_day = ''
     for total_seconds in sorted(programmes):
@@ -459,7 +461,7 @@ def search(programme_name):
     items = []
     for channel_id in channels:
         (channel_name,img_url,order) = channels[channel_id].split('|')
-        programmes = plugin.get_storage(channel_id)
+        programmes = plugin.get_storage(urllib.quote_plus(channel_id.encode("utf8")))
         for total_seconds in programmes:
             (title,sub_title,date,season,episode,categories,plot) = programmes[total_seconds].split('|')
             title_lower = title.encode("utf8").lower()
@@ -489,7 +491,7 @@ def search(programme_name):
 
                 item = {'label':label,'icon':img_url,'thumbnail':img_url}
                 item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
-                item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode)
+                item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode)
                 items.append(item)
     plugin.set_view_mode(51)
     plugin.set_content('episodes')
