@@ -116,9 +116,9 @@ def channel(channel_id,channel_name):
     items = []
     for addon in addons:
         channels = plugin.get_storage(addon)
-        if not channel_name in channels:
+        if not channel_id in channels:
             continue
-        path = channels[channel_name]
+        path = channels[channel_id]
         try:
             addon = xbmcaddon.Addon(addon)
             if addon:
