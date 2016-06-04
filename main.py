@@ -489,7 +489,7 @@ def search(programme_name):
 
                 item = {'label':label,'icon':img_url,'thumbnail':img_url}
                 item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
-                item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode)
+                item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode)
                 items.append(item)
     plugin.set_view_mode(51)
     plugin.set_content('episodes')
