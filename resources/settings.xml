@@ -3,6 +3,7 @@
 <category label="Display">
 <setting id="show_channel_name" label="Show Channel Names" type="bool" default="true" />
 <setting id="show_plot" label="Show Plot" type="bool" default="true" />
+<setting label="Prime Time" type="enum" id="prime" default="21:00" values="$HOURS" />
 </category>
 <category label="Data">
 <setting id="xmltv_file" label="xmltv.xml file" type="file" mask="*.xml" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/xmltv.xml" />

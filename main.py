@@ -327,8 +327,7 @@ def xml_channels():
         total_seconds = time.mktime(start.timetuple())
         programmes[total_seconds] = '|'.join((title,sub_title,date,series,episode,categories,desc))
 
-        
-        
+
 @plugin.route('/channels')
 def channels():  
     channels = plugin.get_storage('channels')
@@ -348,21 +347,21 @@ def channels():
 
     sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
     return sorted_items  
-    
-@plugin.route('/now_next')
-def now_next():  
-    channels = plugin.get_storage('channels')
-    now = datetime.now()
-    total_seconds = time.mktime(now.timetuple())
-    items = []
 
+@plugin.route('/now_next_time/<seconds>')
+def now_next_time(seconds):  
+    channels = plugin.get_storage('channels')
+    now = datetime.fromtimestamp(float(seconds))
+    total_seconds = time.mktime(now.timetuple())
+
+    items = []
     for channel_id in channels:
         (channel_name,img_url,order) = channels[channel_id].split('|')
         channel = urllib.quote_plus(channel_id.encode("utf8"))
         programmes = plugin.get_storage(channel)
         times = sorted(programmes)
         max = len(times)
-        less = [i for i in times if i < total_seconds]
+        less = [i for i in times if i <= total_seconds]
         index = len(less) - 1
         if index < 0:
             continue
@@ -371,7 +370,7 @@ def now_next():
         now = datetime.fromtimestamp(now)
         now = "%02d:%02d" % (now.hour,now.minute)
         (now_title,sub_title,date,season,episode,categories,plot) = now_programme.split('|')
-        
+
         next = ''
         next_title = ''
         if index+1 < max: 
@@ -380,7 +379,7 @@ def now_next():
             next = datetime.fromtimestamp(next)                
             next = "%02d:%02d" % (next.hour,next.minute)                
             (next_title,sub_title,date,season,episode,categories,plot) = next_programme.split('|')
-        
+
         after = ''
         after_title = ''
         if (index+2) < max:
@@ -390,7 +389,6 @@ def now_next():
             after = "%02d:%02d" % (after.hour,after.minute)
             (after_title,sub_title,date,season,episode,categories,plot) = after_programme.split('|')
 
-        
         if  plugin.get_setting('show_channel_name') == 'true':
             label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
             (channel_name,now,now_title,next,next_title,after,after_title)
@@ -401,14 +399,59 @@ def now_next():
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         item['info'] = {'sorttitle' : order}
-        
+
         items.append(item)
+
+    #plugin.set_view_mode(51)
+    #plugin.set_content('episodes')
+    sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
+    return sorted_items  
+
+@plugin.route('/hourly')
+def hourly():  
+    items = []
+
+    dt = datetime.now()
+    dt = dt.replace(hour=0, minute=0, second=0)
+
+    for day in ("Today","Tomorrow"):
+        label = "[COLOR red][B]%s[/B][/COLOR]" % (day)
+        items.append({'label':label,'path':plugin.url_for('hourly')})
+        for hour in range(0,24):
+            label = "[COLOR blue][B]%02d:00[/B][/COLOR]" % (hour)
+            total_seconds = str(time.mktime(dt.timetuple()))
+            items.append({'label':label,'path':plugin.url_for('now_next_time',seconds=total_seconds)})
+            dt = dt + timedelta(hours=1)
+
+    return items
+
+
+@plugin.route('/prime')
+def prime():  
+    prime = plugin.get_setting('prime')
+    dt = datetime.now()
+    dt = dt.replace(hour=int(prime), minute=0, second=0)
+    total_seconds = str(time.mktime(dt.timetuple()))
+    items = now_next_time(total_seconds)
 
     plugin.set_view_mode(51)
     #plugin.set_content('episodes')
     sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
     return sorted_items  
-    
+
+
+@plugin.route('/now_next')
+def now_next():  
+    dt = datetime.now()
+    total_seconds = str(time.mktime(dt.timetuple()))
+    items = now_next_time(total_seconds)
+
+    plugin.set_view_mode(51)
+    #plugin.set_content('episodes')
+    sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
+    return sorted_items  
+
+
 @plugin.route('/listing/<channel_id>/<channel_name>')
 def listing(channel_id,channel_name):  
     programmes = plugin.get_storage(urllib.quote_plus(channel_id))
@@ -512,18 +555,23 @@ def index():
     {
         'label': '[COLOR green][B]Now Next[/B][/COLOR]',
         'path': plugin.url_for('now_next'),
-
-    },       
+    },
+    {
+        'label': '[COLOR blue][B]Hourly[/B][/COLOR]',
+        'path': plugin.url_for('hourly'),
+    },
+    {
+        'label': '[COLOR orange][B]Prime Time[/B][/COLOR]',
+        'path': plugin.url_for('prime'),
+    },
     {
         'label': '[COLOR red][B]Listings[/B][/COLOR]',
         'path': plugin.url_for('channels'),
-
     },
     {
         'label': '[COLOR yellow][B]Search[/B][/COLOR]',
         'path': plugin.url_for('search_dialog'),
-
-    },    
+    },
     ]
     return items
     
