@@ -294,7 +294,20 @@ def xml_channels():
     conn.execute(
     'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
 
-    xml_f = FileWrapper(plugin.get_setting('xmltv_file'))
+    if plugin.get_setting('xmltv_type') == '1':
+        url = plugin.get_setting('xmltv_url')
+        r = requests.get(url)
+        file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/xmltv.xml'
+        xmltv_f = xbmcvfs.File(file_name,'w')
+        xml = r.content
+        #log2(xml)
+        xmltv_f.write(xml)
+        xmltv_f.close()
+        xmltv_file = file_name
+    else:
+        xmltv_file = plugin.get_setting('xmltv_file')
+    
+    xml_f = FileWrapper(xmltv_file)
     context = ET.iterparse(xml_f, events=("start", "end"))
     context = iter(context)
     event, root = context.next()
@@ -406,7 +419,7 @@ def now_next_time(seconds):
         if index < 0:
             continue
         now = times[index]
-        log2(now)
+
         c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,now])
         now = datetime.fromtimestamp(now)
         now = "%02d:%02d" % (now.hour,now.minute)
