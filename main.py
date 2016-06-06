@@ -9,7 +9,9 @@ import time
 import urllib
 import HTMLParser
 import xbmcplugin
-
+import xml.etree.ElementTree as ET
+import sqlite3
+import os
 
 plugin = Plugin()
 
@@ -233,9 +235,271 @@ def xml2utc(xml):
             dt = dt + td
         return dt
     return ''
+
+class FileWrapper(object):
+    def __init__(self, filename):
+        self.vfsfile = xbmcvfs.File(filename)
+        self.size = self.vfsfile.size()
+        self.bytesRead = 0
+
+    def close(self):
+        self.vfsfile.close()
+
+    def read(self, byteCount):
+        self.bytesRead += byteCount
+        return self.vfsfile.read(byteCount)
+
+    def tell(self):
+        return self.bytesRead
+
+        
+def parseXMLTVDate(self, origDateString):
+    if origDateString.find(' ') != -1:
+        # get timezone information
+        dateParts = origDateString.split()
+        if len(dateParts) == 2:
+            dateString = dateParts[0]
+            offset = dateParts[1]
+            if len(offset) == 5:
+                offSign = offset[0]
+                offHrs = int(offset[1:3])
+                offMins = int(offset[-2:])
+                td = datetime.timedelta(minutes=offMins, hours=offHrs)
+            else:
+                td = datetime.timedelta(seconds=0)
+        elif len(dateParts) == 1:
+            dateString = dateParts[0]
+            td = datetime.timedelta(seconds=0)
+        else:
+            return None
+
+        # normalize the given time to UTC by applying the timedelta provided in the timestamp
+        try:
+            t_tmp = datetime.datetime.strptime(dateString, '%Y%m%d%H%M%S')
+        except TypeError:
+            xbmc.log('[script.ftvguide] strptime error with this date: %s' % dateString, xbmc.LOGDEBUG)
+            t_tmp = datetime.datetime.fromtimestamp(time.mktime(time.strptime(dateString, '%Y%m%d%H%M%S')))
+        if offSign == '+':
+            t = t_tmp - td
+        elif offSign == '-':
+            t = t_tmp + td
+        else:
+            t = t_tmp
+
+        # get the local timezone offset in seconds
+        is_dst = time.daylight and time.localtime().tm_isdst > 0
+        utc_offset = - (time.altzone if is_dst else time.timezone)
+        td_local = datetime.timedelta(seconds=utc_offset)
+
+        t = t + td_local
+
+        return t
+
+    else:
+        return None
             
             
+def parseXMLTV(context, f, size, progress_callback):
+    log2("ZZZ")
+    event, root = context.next()
+    elements_parsed = 0
+    meta_installed = False
+
+    try:
+        xbmcaddon.Addon("plugin.video.meta")
+        meta_installed = True
+    except Exception:
+        pass  # ignore addons that are not installed
+
+    for event, elem in context:
+        log2(event)
+        if event == "end":
+            log2(elem.tag)
+            result = None
+            if elem.tag == "programme":
+                channel = elem.get("channel").replace("'", "")  # Make ID safe to use as ' can cause crashes!
+                description = elem.findtext("desc")
+                iconElement = elem.find("icon")
+                icon = None
+                if iconElement is not None:
+                    icon = iconElement.get("src")
+                if not description:
+                    description = strings(NO_DESCRIPTION)
+
+                season = None
+                episode = None
+                is_movie = None
+                language = elem.find("title").get("lang")
+                if meta_installed == True:
+                    episode_num = elem.findtext("episode-num")
+                    categories = elem.findall("category")
+                    for category in categories:
+                        if "movie" in category.text.lower() or channel.lower().find("sky movies") != -1 \
+                                or "film" in category.text.lower():
+                            is_movie = "Movie"
+                            break
+
+                    if episode_num is not None:
+                        episode_num = unicode.encode(unicode(episode_num), 'ascii','ignore')
+                        if str.find(episode_num, ".") != -1:
+                            splitted = str.split(episode_num, ".")
+                            if splitted[0] != "":
+                                season = int(splitted[0]) + 1
+                                is_movie = None # fix for misclassification
+                                if str.find(splitted[1], "/") != -1:
+                                    episode = int(splitted[1].split("/")[0]) + 1
+                                elif splitted[1] != "":
+                                    episode = int(splitted[1]) + 1
+
+                        elif str.find(episode_num.lower(), "season") != -1 and episode_num != "Season ,Episode ":
+                            pattern = re.compile(r"Season\s(\d+).*?Episode\s+(\d+).*",re.I|re.U)
+                            season = int(re.sub(pattern, r"\1", episode_num))
+                            episode = (re.sub(pattern, r"\2", episode_num))
+
+                result = Program(channel, elem.findtext('title'), parseXMLTVDate(elem.get('start')),
+                                 parseXMLTVDate(elem.get('stop')), description, imageSmall=icon,
+                                 season = season, episode = episode, is_movie = is_movie, language= language)
+
+            elif elem.tag == "channel":
+                cid = elem.get("id").replace("'", "")  # Make ID safe to use as ' can cause crashes!
+                title = elem.findtext("display-name")
+                logo = None
+                #if logoFolder:
+                #    logoFile = os.path.join(logoFolder, title + '.png')
+                #    if logoSource == XMLTVSource.LOGO_SOURCE_FTV:
+                #        logo = logoFile.replace(' ', '%20')  # needed due to fetching from a server!
+                #    elif xbmcvfs.exists(logoFile):
+                #        logo = logoFile  # local file instead of remote!
+                streamElement = elem.find("stream")
+                streamUrl = None
+                if streamElement is not None:
+                    streamUrl = streamElement.text
+                visible = elem.get("visible")
+                if visible == "0":
+                    visible = False
+                else:
+                    visible = True
+                result = Channel(cid, title, logo, streamUrl, visible)
+
+            if result:
+                elements_parsed += 1
+                if progress_callback and elements_parsed % 500 == 0:
+                    if not progress_callback(100.0 / size * f.tell()):
+                        raise SourceUpdateCanceledException()
+                yield result
+
+        root.clear()
+    f.close()        
+
+def get_conn():    
+    profilePath = xbmc.translatePath(plugin.addon.getAddonInfo('profile'))
+    if not os.path.exists(profilePath):
+        os.makedirs(profilePath)
+    databasePath = os.path.join(profilePath, 'source.db')    
+    
+    conn = sqlite3.connect(databasePath, detect_types=sqlite3.PARSE_DECLTYPES)
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.row_factory = sqlite3.Row        
+    return conn
+        
 def xml_channels():
+    if plugin.get_setting('xml_reload') == 'true':
+        plugin.set_setting('xml_reload','false')
+    else:
+        path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
+        stat = xbmcvfs.Stat(path)
+        modified = str(stat.st_mtime())
+        last_modified = plugin.get_setting('xmltv_last_modified')
+        if last_modified == modified:
+            pass#TESTreturn
+        plugin.set_setting('xmltv_last_modified', modified)
+
+    xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
+    if not xbmcvfs.exists('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini'):
+        f = xbmcvfs.File('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini','w')
+        f.close()
+
+    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/template.ini'
+    f = xbmcvfs.File(file_name,'w')
+    write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel reload.\n\n[plugin.video.all]\n"
+    f.write(write_str.encode("utf8"))
+
+    conn = get_conn()
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, icon TEXT, PRIMARY KEY (id))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
+
+    xml_f = FileWrapper(plugin.get_setting('xmltv_file'))
+    context = ET.iterparse(xml_f, events=("start", "end"))
+    context = iter(context)
+    event, root = context.next()
+    for event, elem in context:
+        if event == "end":
+
+            if elem.tag == "channel":
+                id = elem.attrib['id']
+                display_name = elem.find('display-name').text
+                try:
+                    icon = elem.find('icon').attrib['src']
+                except:
+                    icon = ''
+                write_str = "%s=\n" % (id)
+                f.write(write_str.encode("utf8"))
+                conn.execute("INSERT OR IGNORE INTO channels(id, name, icon) VALUES(?, ?, ?)", [id, display_name, icon])
+                
+            elif elem.tag == "programme":
+                programme = elem
+                start = programme.attrib['start']
+                start = xml2utc(start)
+                start = utc2local(start)
+                channel = programme.attrib['channel']
+                title = programme.find('title').text
+                match = re.search(r'(.*?)"}.*?\(\?\)$',title) #BUG in webgrab
+                if match:
+                    title = match.group(1)
+                try:
+                    sub_title = programme.find('sub-title').text
+                except:
+                    sub_title = ''
+                try:
+                    date = programme.find('date').text
+                except:
+                    date = ''
+                try:
+                    description = programme.find('desc').text
+                except:
+                    description = ''
+                try:
+                    episode_num = programme.find('episode-num').text
+                except:
+                    episode_num = ''
+                series = 0
+                episode = 0
+                match = re.search(r'(.*?)\.(.*?)[\./]',episode_num)
+                if match:
+                    try:
+                        series = int(match.group(1)) + 1
+                        episode = int(match.group(2)) + 1
+                    except:
+                        pass
+                series = str(series)
+                episode = str(episode)
+                categories = ''
+                for category in programme.findall('category'):
+                    categories = ','.join((categories,category.text)).strip(',')
+
+                total_seconds = time.mktime(start.timetuple())
+                start = int(total_seconds)
+                conn.execute("INSERT OR IGNORE INTO programmes(channel ,title , sub_title , start , date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", [channel ,title , sub_title , start , date, description , series , episode , categories])
+            root.clear()
+
+    conn.commit()
+    conn.close()
+'''
+def xml_channels1():
     if plugin.get_setting('xml_reload') == 'true':
         plugin.set_setting('xml_reload','false')
     else:
@@ -326,27 +590,27 @@ def xml_channels():
         programmes = plugin.get_storage(channel)
         total_seconds = time.mktime(start.timetuple())
         programmes[total_seconds] = '|'.join((title,sub_title,date,series,episode,categories,desc))
-
+'''
 
 @plugin.route('/channels')
 def channels():  
-    channels = plugin.get_storage('channels')
-    items = []
-    for channel_id in channels:
-        (channel_name,img_url,order) = channels[channel_id].split('|')
+    conn = get_conn()
+    c = conn.cursor()
 
+    c.execute('SELECT * FROM channels')
+    items = []
+    for row in c:
+        channel_id = row['id']
+        channel_name = row['name']
+        img_url = row['icon']
         label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
-            
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
-        item['info'] = {'sorttitle' : order}
-        
         items.append(item)
+    c.close()
 
     plugin.set_view_mode(51)
-
-    sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
-    return sorted_items  
+    return items
 
 @plugin.route('/now_next_time/<seconds>')
 def now_next_time(seconds):  
@@ -451,7 +715,62 @@ def now_next():
     sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
     return sorted_items  
 
+@plugin.route('/listing/<channel_id>/<channel_name>')
+def listing(channel_id,channel_name):  
+    conn = get_conn()
+    c = conn.cursor()
+    #log2(channel_id)
+    c.execute('SELECT * FROM programmes WHERE channel=?', [channel_id.decode("utf8")])
+    items = []
+    last_day = ''
+    for row in c:
 
+        title = row['title']
+        sub_title = row['sub_title']
+        start = row['start']
+        date = row['date']
+        plot = row['description']
+        season = row['series']
+        episode = row['episode']
+        categories = row['categories']
+        
+        dt = datetime.fromtimestamp(start)
+        day = dt.day
+        if day != last_day:
+            last_day = day
+            label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
+            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)}) 
+            
+        if not season:
+            season = '0'
+        if not episode:
+            episode = '0'
+        if date:
+            title = "%s (%s)" % (title,date)
+        if sub_title:
+            plot = "[B]%s[/B]: %s" % (sub_title,plot)
+        ttime = "%02d:%02d" % (dt.hour,dt.minute)
+        channel_name_u = unicode(channel_name,'utf-8')
+        if  plugin.get_setting('show_channel_name') == 'true':
+            if plugin.get_setting('show_plot') == 'true':
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name_u,ttime,title,plot)
+            else:
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name_u,ttime,title)
+        else:
+            if plugin.get_setting('show_plot') == 'true':
+                label = "%s [COLOR orange][B]%s[/B][/COLOR] %s" % (ttime,title,plot)
+            else:
+                label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
+
+        img_url = ''
+        item = {'label':label,'icon':img_url,'thumbnail':img_url}
+        item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
+        item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode)
+        items.append(item)
+    c.close()
+
+    return items  
+'''    
 @plugin.route('/listing/<channel_id>/<channel_name>')
 def listing(channel_id,channel_name):  
     programmes = plugin.get_storage(urllib.quote_plus(channel_id))
@@ -496,7 +815,7 @@ def listing(channel_id,channel_name):
     plugin.set_view_mode(51)
     plugin.set_content('episodes')
     return items  
-    
+'''    
 @plugin.route('/search/<programme_name>')
 def search(programme_name):
     channels = plugin.get_storage('channels')
