@@ -10,6 +10,7 @@
 <setting id="xmltv_url" label="XMLTV Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/guide.xmltv" />
 <setting id="xmltv_file" label="XMLTV File" type="file" mask="*.xml" enable="eq(-2,0)" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/xmltv.xml" />
 <setting id="xml_reload" label="(Re)load .xml file" type="bool" default="true" />
+<setting id="xmltv_hours" label="Reload hours" type="select" default="12" values="12|24|48"/>
 <setting type="sep"/>
 <setting id="ini_file1" label="1st stream .ini file" type="file" mask="*.ini" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/addons.ini" />
 <setting id="ini_file2" label="2nd stream .ini file" type="file" mask="*.ini" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini" />
