@@ -282,7 +282,6 @@ def xml_channels():
                 else:
                     dt = datetime.now()
                     now = int(time.mktime(dt.timetuple()))
-                    log2(now)
                     try:
                         last = plugin.get_setting("xmltv_url_last")
                         last = int(last) if last else 0
