@@ -211,10 +211,9 @@ def store_channels():
                             addons[addon] = addon
         except:
             pass
-    
-   
 
-            
+
+
 def xml2utc(xml):
     match = re.search(r'([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2}) ([+-])([0-9]{2})([0-9]{2})',xml)
     if match:
@@ -268,29 +267,38 @@ def xml_channels():
     if plugin.get_setting('xml_reload') == 'true':
         plugin.set_setting('xml_reload','false')
     else:
-        if plugin.get_setting('xmltv_type') == '0':
-            path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
-            stat = xbmcvfs.Stat(path)
-            modified = str(stat.st_mtime())
-            last_modified = plugin.get_setting('xmltv_last_modified')
-            if last_modified == modified:
-                return
-            plugin.set_setting('xmltv_last_modified', modified)
-        else:
-            dt = datetime.now()
-            now = int(time.mktime(dt.timetuple()))
-            log2(now)
-            try:
-                last = plugin.get_setting("xmltv_url_last")
-                last = int(last) if last else 0
-                hours = int(plugin.get_setting("xmltv_hours"))
-                next = last + 3600*hours
-                if now < next:
-                    return
+        try:
+            xmltv_type = plugin.get_setting('xmltv_type')
+            xmltv_type_last = plugin.get_setting('xmltv_type_last')
+            if xmltv_type == xmltv_type_last:
+                if plugin.get_setting('xmltv_type') == '0':
+                    path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
+                    stat = xbmcvfs.Stat(path)
+                    modified = str(stat.st_mtime())
+                    last_modified = plugin.get_setting('xmltv_last_modified')
+                    if last_modified == modified:
+                        return
+                    plugin.set_setting('xmltv_last_modified', modified)
                 else:
-                    plugin.set_setting("xmltv_url_last",str(now))
-            except:
-                plugin.set_setting("xmltv_url_last",str(now))
+                    dt = datetime.now()
+                    now = int(time.mktime(dt.timetuple()))
+                    log2(now)
+                    try:
+                        last = plugin.get_setting("xmltv_url_last")
+                        last = int(last) if last else 0
+                        hours = int(plugin.get_setting("xmltv_hours"))
+                        next = last + 3600*hours
+                        if now < next:
+                            return
+                        else:
+                            plugin.set_setting("xmltv_url_last",str(now))
+                    except:
+                        plugin.set_setting("xmltv_url_last",str(now))
+            #TODO check logic for reloading xmltv files
+            plugin.set_setting('xmltv_type_last',xmltv_type)
+        except:
+            plugin.set_setting('xmltv_type_last',xmltv_type)
+
 
     xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
     if not xbmcvfs.exists('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini'):
@@ -628,7 +636,6 @@ def search(programme_name):
             else:
                 label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
 
-        #img_url = ''
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
         item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode)
@@ -644,7 +651,7 @@ def search_dialog():
     name = dialog.input('Search for programme', type=xbmcgui.INPUT_ALPHANUM)
     if name:
         return search(name)
-     
+
 
 @plugin.route('/')
 def index():
