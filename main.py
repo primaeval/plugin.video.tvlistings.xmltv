@@ -418,7 +418,6 @@ def channels():
         items.append(item)
     c.close()
 
-    plugin.set_view_mode(51)
     return items
 
 @plugin.route('/now_next_time/<seconds>')
@@ -481,9 +480,6 @@ def now_next_time(seconds):
 
         items.append(item)
 
-    #plugin.set_view_mode(51)
-    #plugin.set_content('episodes')
-
     return items
 
 @plugin.route('/hourly')
@@ -512,11 +508,6 @@ def prime():
     dt = dt.replace(hour=int(prime), minute=0, second=0)
     total_seconds = str(time.mktime(dt.timetuple()))
     items = now_next_time(total_seconds)
-
-    plugin.set_view_mode(51)
-    #plugin.set_content('episodes')
-    #sorted_items = sorted(items, key=lambda item: item['info']['sorttitle'])
-    #return sorted_items  
     return items
 
 
@@ -525,9 +516,6 @@ def now_next():
     dt = datetime.now()
     total_seconds = str(time.mktime(dt.timetuple()))
     items = now_next_time(total_seconds)
-
-    plugin.set_view_mode(51)
-    #plugin.set_content('episodes')
     return items
 
 @plugin.route('/listing/<channel_id>/<channel_name>')
@@ -652,8 +640,10 @@ def search_dialog():
         return search(name)
 
 
+index_page = False
 @plugin.route('/')
 def index():
+    index_page = True
     items = [  
     {
         'label': '[COLOR green][B]Now Next[/B][/COLOR]',
@@ -682,4 +672,5 @@ if __name__ == '__main__':
     xml_channels()
     store_channels()
     plugin.run()
-    
+    if index_page == False:
+        plugin.set_view_mode(51)
