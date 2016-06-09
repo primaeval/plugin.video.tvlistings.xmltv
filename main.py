@@ -361,7 +361,7 @@ def xml_channels():
     conn.execute(
     'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
 
-    dialog.notification("TV Listings (json)","loading xmltv file")
+    dialog.notification("TV Listings (xmltv)","loading xmltv file")
     if plugin.get_setting('xmltv_type') == '1':
         url = plugin.get_setting('xmltv_url')
         r = requests.get(url)
@@ -373,7 +373,7 @@ def xml_channels():
         xmltv_file = file_name
     else:
         xmltv_file = plugin.get_setting('xmltv_file')
-    dialog.notification("TV Listings (json)","finished loading xmltv file")
+    dialog.notification("TV Listings (xmltv)","finished loading xmltv file")
     
     xml_f = FileWrapper(xmltv_file)
     if xml_f.size == 0:
@@ -396,7 +396,7 @@ def xml_channels():
                 f.write(write_str.encode("utf8"))
                 conn.execute("INSERT OR IGNORE INTO channels(id, name, icon) VALUES(?, ?, ?)", [id, display_name, icon])
                 if (now - last).seconds > 0.5:
-                    dialog.notification("TV Listings (json)","loading channels: "+display_name)
+                    dialog.notification("TV Listings (xmltv)","loading channels: "+display_name)
                     last = now
 
             elif elem.tag == "programme":
@@ -444,7 +444,7 @@ def xml_channels():
                 start = int(total_seconds)
                 conn.execute("INSERT OR IGNORE INTO programmes(channel ,title , sub_title , start , date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", [channel ,title , sub_title , start , date, description , series , episode , categories])
                 if (now - last).seconds > 0.5:
-                    dialog.notification("TV Listings (json)","loading programmes: "+channel)
+                    dialog.notification("TV Listings (xmltv)","loading programmes: "+channel)
                     last = now
             root.clear()
 
