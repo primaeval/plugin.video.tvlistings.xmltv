@@ -63,7 +63,7 @@ def play(channel_id,channel_name,title,season,episode):
              })         
         meta_url = "plugin://plugin.video.meta/tv/tvdb/%s" % (tvdb_id)
         items.append({
-        'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta[/B][/COLOR]' % (title),
+        'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
         'path': meta_url,
         'thumbnail': meta_icon,
         'icon': meta_icon,
@@ -88,7 +88,7 @@ def play(channel_id,channel_name,title,season,episode):
             year =  match.group(2) #TODO: Meta doesn't support year yet
             meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (movie)
             items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta[/B][/COLOR]' % (title),
+            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie[/B][/COLOR]' % (title),
             'path': meta_url,
             'thumbnail': meta_icon,
             'icon': meta_icon,
@@ -109,7 +109,15 @@ def play(channel_id,channel_name,title,season,episode):
         else:
             meta_url = "plugin://plugin.video.meta/tv/search_term/%s/1" % (title)
             items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta search[/B][/COLOR]' % (title),
+            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
+            'path': meta_url,
+            'thumbnail': meta_icon,
+            'icon': meta_icon,
+            'is_playable': False,
+             }) 
+            meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (title)
+            items.append({
+            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie search[/B][/COLOR]' % (title),
             'path': meta_url,
             'thumbnail': meta_icon,
             'icon': meta_icon,
