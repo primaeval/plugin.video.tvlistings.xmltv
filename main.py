@@ -40,12 +40,16 @@ def play(channel_id,channel_name,title,season,episode):
     tvdb_id = ''
     if int(season) > 0 and int(episode) > 0:
         tvdb_id = get_tvdb_id(title)
+    addon = xbmcaddon.Addon('plugin.video.meta')
+    meta_icon = addon.getAddonInfo('icon')  
     if tvdb_id:
         if season and episode:
             meta_url = "plugin://plugin.video.meta/tv/play/%s/%s/%s/%s" % (tvdb_id,season,episode,'select')
             items.append({
             'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%sE%s[/B][/COLOR] [COLOR green][B]Meta episode[/B][/COLOR]' % (title,season,episode),
             'path': meta_url,
+            'thumbnail': meta_icon,
+            'icon': meta_icon,
             'is_playable': True,
              })
         if season:
@@ -53,20 +57,27 @@ def play(channel_id,channel_name,title,season,episode):
             items.append({
             'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%s[/B][/COLOR] [COLOR green][B]Meta season[/B][/COLOR]' % (title,season),
             'path': meta_url,
+            'thumbnail': meta_icon,
+            'icon': meta_icon,
             'is_playable': False,
              })         
         meta_url = "plugin://plugin.video.meta/tv/tvdb/%s" % (tvdb_id)
         items.append({
         'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta[/B][/COLOR]' % (title),
         'path': meta_url,
+        'thumbnail': meta_icon,
+        'icon': meta_icon,
         'is_playable': False,
          })
         try:
             addon = xbmcaddon.Addon('plugin.video.sickrage')
+            sick_icon =  addon.getAddonInfo('icon')            
             if addon:
                 items.append({
                 'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title), 
                 'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
+                'thumbnail': sick_icon,
+                'icon': sick_icon,
                 })
         except:
             pass
@@ -79,14 +90,19 @@ def play(channel_id,channel_name,title,season,episode):
             items.append({
             'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta[/B][/COLOR]' % (title),
             'path': meta_url,
+            'thumbnail': meta_icon,
+            'icon': meta_icon,
             'is_playable': False,
              }) 
             try:
                 addon = xbmcaddon.Addon('plugin.video.couchpotato_manager')
+                couch_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
                     'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]CouchPotato[/B][/COLOR]' % (title), 
-                    'path':"plugin://plugin.video.couchpotato_manager/movies/add/?title=%s" % (title)
+                    'path':"plugin://plugin.video.couchpotato_manager/movies/add/?title=%s" % (title),
+                    'thumbnail': couch_icon,
+                    'icon': couch_icon,                     
                     })
             except:
                 pass
@@ -95,14 +111,19 @@ def play(channel_id,channel_name,title,season,episode):
             items.append({
             'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta search[/B][/COLOR]' % (title),
             'path': meta_url,
+            'thumbnail': meta_icon,
+            'icon': meta_icon,
             'is_playable': False,
              }) 
             try:
                 addon = xbmcaddon.Addon('plugin.video.sickrage')
+                sick_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
                     'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title), 
                     'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
+                    'thumbnail': sick_icon,
+                    'icon': sick_icon,                    
                     })
             except:
                 pass
@@ -124,15 +145,27 @@ def channel(channel_id,channel_name):
         try:
             addon = xbmcaddon.Addon(addon)
             if addon:
+                icon = addon.getAddonInfo('icon') 
                 item = {
                 'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),addon.getAddonInfo('name')),
                 'path': path,
+                'thumbnail': icon,
+                'icon': icon,
                 'is_playable': True,
                 }
                 items.append(item)
         except:
             pass
-
+    addon = xbmcaddon.Addon('plugin.video.meta')
+    meta_icon = addon.getAddonInfo('icon')
+    meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
+    items.append({
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
+    'path': meta_url,
+    'thumbnail': meta_icon,
+    'icon': meta_icon,
+    'is_playable': False,
+     })
     return items
 
 def utc2local (utc):
@@ -522,11 +555,14 @@ def now_next():
 def listing(channel_id,channel_name):  
     conn = get_conn()
     c = conn.cursor()
+    c.execute('SELECT *, name FROM channels')
+    channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
     c.execute('SELECT * FROM programmes WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
-    items = []
+    items = channel(channel_id,channel_name)
     last_day = ''
     for row in c:
-
+        channel_id = row['channel']
+        (channel_name, img_url) = channels[channel_id]
         title = row['title']
         sub_title = row['sub_title']
         start = row['start']
@@ -552,19 +588,19 @@ def listing(channel_id,channel_name):
         if sub_title:
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
-        channel_name_u = unicode(channel_name,'utf-8')
+
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name_u,ttime,title,plot)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name,ttime,title,plot)
             else:
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name_u,ttime,title)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name,ttime,title)
         else:
             if plugin.get_setting('show_plot') == 'true':
                 label = "%s [COLOR orange][B]%s[/B][/COLOR] %s" % (ttime,title,plot)
             else:
                 label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
 
-        img_url = ''
+        
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
         item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode)
