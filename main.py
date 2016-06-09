@@ -303,15 +303,22 @@ def get_conn():
     conn.execute('PRAGMA foreign_keys = ON')
     conn.row_factory = sqlite3.Row        
     return conn
-        
+
+
 def xml_channels():
+    try:
+        updating = plugin.get_setting('xmltv_updating')
+    except:
+        updating = 'false'
+        plugin.set_setting('xmltv_updating', updating)
+    if updating == 'true':
+        return
     xmltv_type = plugin.get_setting('xmltv_type')
     if plugin.get_setting('xml_reload') == 'true':
         plugin.set_setting('xml_reload','false')
     else:
         try:
             xmltv_type_last = plugin.get_setting('xmltv_type_last')
-            log2(xmltv_type_last)
             if xmltv_type == xmltv_type_last:
                 if plugin.get_setting('xmltv_type') == '0':
                     path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
@@ -459,7 +466,7 @@ def xml_channels():
 
     conn.commit()
     conn.close()
-
+    plugin.set_setting('xmltv_updating', 'false')
 
 @plugin.route('/channels')
 def channels():  
