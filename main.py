@@ -305,12 +305,13 @@ def get_conn():
     return conn
         
 def xml_channels():
+    xmltv_type = plugin.get_setting('xmltv_type')
     if plugin.get_setting('xml_reload') == 'true':
         plugin.set_setting('xml_reload','false')
     else:
         try:
-            xmltv_type = plugin.get_setting('xmltv_type')
             xmltv_type_last = plugin.get_setting('xmltv_type_last')
+            log2(xmltv_type_last)
             if xmltv_type == xmltv_type_last:
                 if plugin.get_setting('xmltv_type') == '0':
                     path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
@@ -335,9 +336,9 @@ def xml_channels():
                     except:
                         plugin.set_setting("xmltv_url_last",str(now))
             #TODO check logic for reloading xmltv files
-            plugin.set_setting('xmltv_type_last',xmltv_type)
         except:
-            plugin.set_setting('xmltv_type_last',xmltv_type)
+            pass
+    plugin.set_setting('xmltv_type_last',xmltv_type)
 
     dialog = xbmcgui.Dialog()
 
@@ -371,8 +372,16 @@ def xml_channels():
         xmltv_f.write(xml)
         xmltv_f.close()
         xmltv_file = file_name
+        dt = datetime.now()
+        now = int(time.mktime(dt.timetuple()))
+        plugin.set_setting("xmltv_url_last",str(now))
     else:
         xmltv_file = plugin.get_setting('xmltv_file')
+        path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
+        stat = xbmcvfs.Stat(path)
+        modified = str(stat.st_mtime())
+        plugin.set_setting('xmltv_last_modified',modified)
+
     dialog.notification("TV Listings (xmltv)","finished loading xmltv file")
     
     xml_f = FileWrapper(xmltv_file)
