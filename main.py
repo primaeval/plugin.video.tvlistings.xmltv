@@ -215,6 +215,8 @@ def get_url(url):
 
 
 def store_channels():
+    log2(plugin.id)
+    log2(plugin.name)
     if plugin.get_setting('ini_reload') == 'true':
         plugin.set_setting('ini_reload','false')
     else:
@@ -227,31 +229,55 @@ def store_channels():
         channels.clear()
     addons.clear()
 
-    ini_files = [plugin.get_setting('ini_file1'),plugin.get_setting('ini_file2')]
+    if plugin.get_setting('ini_type') == '1':
+        url = plugin.get_setting('ini_url')
+        r = requests.get(url)
+        file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/addons.ini'
+        xmltv_f = xbmcvfs.File(file_name,'w')
+        xml = r.content
+        xmltv_f.write(xml)
+        xmltv_f.seek(0,0)
+        #NOTE not xmltv_f.close()
+        ini_file = file_name
+        dt = datetime.now()
+        now = int(time.mktime(dt.timetuple()))
+        plugin.set_setting("ini_url_last",str(now))
+    else:
+        ini_file = plugin.get_setting('ini_file')
+        path = xbmc.translatePath(plugin.get_setting('ini_file'))
+        stat = xbmcvfs.Stat(path)
+        modified = str(stat.st_mtime())
+        plugin.set_setting('ini_last_modified',modified)
     
-    for ini in ini_files:
-        try:
-            f = xbmcvfs.File(ini)
-            items = f.read().splitlines()
-            f.close()
-            addon = 'nothing'
-            for item in items:
-                if item.startswith('['):
-                    addon = item.strip('[] \t')
-                elif item.startswith('#'):
-                    pass
-                else:
-                    name_url = item.split('=',1)
-                    if len(name_url) == 2:
-                        name = name_url[0]
-                        url = name_url[1]
-                        if url:
-                            channels = plugin.get_storage(addon)
-                            channels[name] = url
-                            addons = plugin.get_storage('addons')
-                            addons[addon] = addon
-        except:
-            pass
+    try:
+        if plugin.get_setting('ini_type') == '1':
+            f = xmltv_f
+        else:
+            f = xbmcvfs.File(ini_file)
+        items = f.read().splitlines()
+        f.close()
+        addon = 'nothing'
+        addons = plugin.get_storage('addons')
+        for item in items:
+            if item.startswith('['):
+                addon = item.strip('[] \t')
+                channels = plugin.get_storage(addon)
+            elif item.startswith('#'):
+                pass
+            else:
+                name_url = item.split('=',1)
+                if len(name_url) == 2:
+                    name = name_url[0]
+                    url = name_url[1]
+                    if url:
+                        channels[name] = url
+                        addons[addon] = addon
+        addons.sync()
+        for addon in addons:
+            channels = plugin.get_storage(addon)
+            channels.sync()
+    except:
+        pass
 
 
 
@@ -319,32 +345,28 @@ def xml_channels():
     else:
         try:
             xmltv_type_last = plugin.get_setting('xmltv_type_last')
-            if xmltv_type == xmltv_type_last:
-                if plugin.get_setting('xmltv_type') == '0':
+        except:
+            xmltv_type_last = xmltv_type
+            plugin.set_setting('xmltv_type_last', xmltv_type)
+        if xmltv_type == xmltv_type_last:
+            if plugin.get_setting('xmltv_type') == '0': # File
+                if plugin.get_setting('xml_reload_modified') == 'true':
                     path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
                     stat = xbmcvfs.Stat(path)
                     modified = str(stat.st_mtime())
                     last_modified = plugin.get_setting('xmltv_last_modified')
                     if last_modified == modified:
                         return
-                    plugin.set_setting('xmltv_last_modified', modified)
+                    else:
+                        pass
                 else:
-                    dt = datetime.now()
-                    now = int(time.mktime(dt.timetuple()))
-                    try:
-                        last = plugin.get_setting("xmltv_url_last")
-                        last = int(last) if last else 0
-                        hours = int(plugin.get_setting("xmltv_hours"))
-                        next = last + 3600*hours
-                        if now < next:
-                            return
-                        else:
-                            plugin.set_setting("xmltv_url_last",str(now))
-                    except:
-                        plugin.set_setting("xmltv_url_last",str(now))
-            #TODO check logic for reloading xmltv files
-        except:
+                    pass
+            else: #NOTE use Timer to reload URL
+                return
+        else:
             pass
+
+    xbmc.log("XMLTV UPDATE")
     plugin.set_setting('xmltv_type_last',xmltv_type)
 
     dialog = xbmcgui.Dialog()
@@ -369,7 +391,7 @@ def xml_channels():
     conn.execute(
     'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
 
-    dialog.notification("TV Listings (xmltv)","loading xmltv file")
+    dialog.notification("TV Listings (xmltv)","downloading xmltv file")
     if plugin.get_setting('xmltv_type') == '1':
         url = plugin.get_setting('xmltv_url')
         r = requests.get(url)
@@ -389,7 +411,7 @@ def xml_channels():
         modified = str(stat.st_mtime())
         plugin.set_setting('xmltv_last_modified',modified)
 
-    dialog.notification("TV Listings (xmltv)","finished loading xmltv file")
+    dialog.notification("TV Listings (xmltv)","finished downloading xmltv file")
     
     xml_f = FileWrapper(xmltv_file)
     if xml_f.size == 0:
