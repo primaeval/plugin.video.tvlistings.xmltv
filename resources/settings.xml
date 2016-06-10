@@ -8,7 +8,7 @@
 <category label="XMLTV Data">
 <setting label="XMLTV Type" type="enum" id="xmltv_type" default="File" values="File|Url" />
 <setting id="xmltv_url" label="XMLTV Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/guide.xmltv" />
-<setting id="xmltv_file" label="XMLTV File" type="file" mask="*.xml" enable="eq(-2,0)" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/xmltv.xml" />
+<setting id="xmltv_file" label="XMLTV File" type="file" mask="*.xml|*.xmltv" enable="eq(-2,0)" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/xmltv.xml" />
 <setting id="xml_reload_modified" label="Reload xmltv file when Modified" type="bool" enable="eq(-3,0)" default="true" />
 <setting type="sep"/>
 <setting id="xml_reload" label="Force reload xmltv file" type="bool" default="true" />
