@@ -215,8 +215,6 @@ def get_url(url):
 
 
 def store_channels():
-    log2(plugin.id)
-    log2(plugin.name)
     if plugin.get_setting('ini_reload') == 'true':
         plugin.set_setting('ini_reload','false')
     else:

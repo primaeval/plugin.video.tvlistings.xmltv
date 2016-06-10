@@ -17,7 +17,6 @@ while not monitor.abortRequested():
             xmltv_timer_last = int(xbmcaddon.Addon(ADDON).getSetting('xmltv_timer_last'))
         except:
             xmltv_timer_last = 0
-        xbmc.log('xmltv_timer_last '+str(xmltv_timer_last))
         now_seconds = int(time.mktime(dt.timetuple()))
         timeout = False
         if xmltv_timer_last + 25*3600 < now_seconds:
