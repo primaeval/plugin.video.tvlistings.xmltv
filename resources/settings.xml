@@ -22,4 +22,9 @@
 <setting id="ini_file" label="stream .ini file" type="file" mask="*.ini" enable="eq(-2,0)" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini" />
 <setting id="ini_reload" label="Force reload .ini files" type="bool" default="true" />
 </category>
+<category label="Logos">
+<setting label="Logo Type" type="enum" id="logo_type" default="Folder" values="Folder|Url" />
+<setting id="logo_url" label="logo folder Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/logos" />
+<setting id="logo_folder" label="logo Folder" type="folder" enable="eq(-2,0)" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/logos" />
+</category>
 </settings>

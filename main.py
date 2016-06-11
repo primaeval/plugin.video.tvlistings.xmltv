@@ -428,6 +428,15 @@ def xml_channels():
                     icon = elem.find('icon').attrib['src']
                 except:
                     icon = ''
+                    if plugin.get_setting('logo_type') == 0:
+                        path = plugin.get_setting('logo_folder')
+                        if path:
+                            icon = os.path.join(path,display_name,".png")
+                    else:
+                        path = plugin.get_setting('logo_url')
+                        if path:
+                            icon = "%s/%s.png" % (path,display_name)
+
                 write_str = "%s=\n" % (id)
                 f.write(write_str.encode("utf8"))
                 conn.execute("INSERT OR IGNORE INTO channels(id, name, icon) VALUES(?, ?, ?)", [id, display_name, icon])
