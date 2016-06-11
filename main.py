@@ -359,8 +359,17 @@ def xml_channels():
                         pass
                 else:
                     return
-            else: #NOTE use Timer to reload URL
-                return
+            else:
+                dt = datetime.now()
+                now_seconds = int(time.mktime(dt.timetuple()))
+                try:
+                    xmltv_url_last = int(plugin.get_setting("xmltv_url_last"))
+                except:
+                    xmltv_url_last = 0
+                if xmltv_url_last + 24*3600 < now_seconds:
+                    pass
+                else:
+                    return
         else:
             pass
 
