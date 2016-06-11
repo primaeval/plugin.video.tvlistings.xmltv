@@ -27,7 +27,10 @@ def get_icon_path(icon_name):
 
 def get_tvdb_id(name):
     tvdb_url = "http://thetvdb.com//api/GetSeries.php?seriesname=%s" % name
-    r = requests.get(tvdb_url)
+    try:
+        r = requests.get(tvdb_url)
+    except:
+        return ''
     tvdb_html = r.text
     tvdb_id = ''
     tvdb_match = re.search(r'<seriesid>(.*?)</seriesid>', tvdb_html, flags=(re.DOTALL | re.MULTILINE))
