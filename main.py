@@ -45,18 +45,26 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     icon = ''
     description = "%s: %s" % (channel_name,title)
     xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
-        (title.encode('utf-8', 'replace'), title.encode('utf-8', 'replace'), description.encode('utf-8', 'replace'), icon, timeToNotification))
+        (title, title, description, icon, timeToNotification))
 
+
+@plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
+def watch(channel_id,channel_name,title,season,episode,start,stop):
     channels = plugin.get_storage('change_channel')
     if not channel_id in channels:
         return
     path = channels[channel_id]
-    xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(%s),%d,True)' %
-        (title.encode('utf-8', 'replace'), path, timeToNotification))
-    t = datetime.fromtimestamp(float(stop)) - datetime.now()
+    t = datetime.fromtimestamp(float(start)) - datetime.now()
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
-    xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' % 
-        (title.encode('utf-8', 'replace'), timeToNotification))
+    xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(%s),%d,False)' %
+        (title, path, timeToNotification))
+        
+    if plugin.get_setting('watch_and_stop') == 'true':
+        t = datetime.fromtimestamp(float(stop)) - datetime.now()
+        timeToNotification = ((t.days * 86400) + t.seconds) / 60
+        xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' % 
+            (title, timeToNotification))
+
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
@@ -64,7 +72,9 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     icon = ''
     description = "%s: %s" % (channel_name,title)
-    xbmc.executebuiltin('CancelAlarm(%s,True)' % (title.encode('utf-8', 'replace')))
+    xbmc.executebuiltin('CancelAlarm(%s,False)' % (title))
+    xbmc.executebuiltin('CancelAlarm(%s-start,False)' % (title))
+    xbmc.executebuiltin('CancelAlarm(%s-stop,False)' % (title))
 
 @plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def play(channel_id,channel_name,title,season,episode,start,stop):
@@ -171,13 +181,21 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     clock_icon = get_icon_path('alarm')
     items.append({
     'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Remind[/B][/COLOR]' % (title),
-    'path':plugin.url_for('remind', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"),title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop),
+    'path':plugin.url_for('remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
     'thumbnail': clock_icon,
     'icon': clock_icon,
     })
+    channels = plugin.get_storage('change_channel')
+    if channel_id in channels:
+        items.append({
+        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Watch[/B][/COLOR]' % (title),
+        'path':plugin.url_for('watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
+        'thumbnail': clock_icon,
+        'icon': clock_icon,
+        })
     items.append({
     'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Cancel[/B][/COLOR]' % (title),
-    'path':plugin.url_for('cancel_remind', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"),title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop),
+    'path':plugin.url_for('cancel_remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
     'thumbnail': clock_icon,
     'icon': clock_icon,
     })
@@ -706,7 +724,7 @@ def listing(channel_id,channel_name):
         if day != last_day:
             last_day = day
             label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
-            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)})
+            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
 
         if not season:
             season = '0'
@@ -732,7 +750,7 @@ def listing(channel_id,channel_name):
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
-        item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
+        item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
         items.append(item)
     c.close()
 

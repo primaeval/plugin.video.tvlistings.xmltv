@@ -27,4 +27,7 @@
 <setting id="logo_url" label="logo folder Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/logos" />
 <setting id="logo_folder" label="logo Folder" type="folder" enable="eq(-2,0)" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/logos" />
 </category>
+<category label="Reminders">
+<setting id="watch_and_stop" label="Stop playback at end of watch timer" type="bool" default="true" />
+</category>
 </settings>
