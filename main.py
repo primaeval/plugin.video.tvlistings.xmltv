@@ -763,7 +763,7 @@ def search(programme_name):
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
     channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
-    c.execute("SELECT * FROM programmes WHERE LOWER(title) LIKE LOWER(?) ORDER BY start, channel", ['%'+programme_name+'%'])
+    c.execute("SELECT * FROM programmes WHERE LOWER(title) LIKE LOWER(?) ORDER BY start, channel", ['%'+programme_name.decode("utf8")+'%'])
     last_day = ''
     items = []
     for row in c:
@@ -772,6 +772,7 @@ def search(programme_name):
         title = row['title']
         sub_title = row['sub_title']
         start = row['start']
+        stop = row['stop']
         date = row['date']
         plot = row['description']
         season = row['series']
@@ -808,7 +809,7 @@ def search(programme_name):
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
-        item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode)
+        item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
         items.append(item)
     c.close()
     return items
