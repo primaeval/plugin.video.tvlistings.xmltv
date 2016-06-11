@@ -358,7 +358,7 @@ def xml_channels():
                     else:
                         pass
                 else:
-                    pass
+                    return
             else: #NOTE use Timer to reload URL
                 return
         else:

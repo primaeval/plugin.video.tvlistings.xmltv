@@ -23,8 +23,9 @@ while not monitor.abortRequested():
             timeout = True
         else:
             hour = xbmcaddon.Addon(ADDON).getSetting('xml_reload_hour')
-            if dt.hour == hour:
-                timeout = True
+            if xmltv_timer_last + 1*3600 < now_seconds: # only once a day
+                if dt.hour == hour:
+                    timeout = True
         if timeout:
             xbmcaddon.Addon(ADDON).setSetting('xml_reload','true')
             main.xml_channels()
