@@ -20,7 +20,11 @@ def log2(v):
 
 def log(v):
     xbmc.log(re.sub(',',',\n',repr(v)))
-    
+
+def get_icon_path(icon_name):
+    addon_path = xbmcaddon.Addon().getAddonInfo("path")
+    return os.path.join(addon_path, 'resources', 'img', icon_name+".png")
+
 def get_tvdb_id(name):
     tvdb_url = "http://thetvdb.com//api/GetSeries.php?seriesname=%s" % name
     r = requests.get(tvdb_url)
@@ -31,17 +35,32 @@ def get_tvdb_id(name):
         tvdb_id = tvdb_match.group(1)
     return tvdb_id
 
-  
-    
-@plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>')
-def play(channel_id,channel_name,title,season,episode):
+@plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
+def remind(channel_id,channel_name,title,season,episode,start,stop):
+    t = datetime.fromtimestamp(float(start)) - datetime.now()
+    timeToNotification = ((t.days * 86400) + t.seconds) / 60
+    icon = ''
+    description = "%s: %s" % (channel_name,title)
+    xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
+            (title.encode('utf-8', 'replace'), title.encode('utf-8', 'replace'), description.encode('utf-8', 'replace'), icon, timeToNotification))
+
+@plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
+def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
+    t = datetime.fromtimestamp(float(start)) - datetime.now()
+    timeToNotification = ((t.days * 86400) + t.seconds) / 60
+    icon = ''
+    description = "%s: %s" % (channel_name,title)
+    xbmc.executebuiltin('CancelAlarm(%s,True)' % (title.encode('utf-8', 'replace')))
+
+@plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
+def play(channel_id,channel_name,title,season,episode,start,stop):
     channel_items = channel(channel_id,channel_name)
     items = []
     tvdb_id = ''
     if int(season) > 0 and int(episode) > 0:
         tvdb_id = get_tvdb_id(title)
     addon = xbmcaddon.Addon('plugin.video.meta')
-    meta_icon = addon.getAddonInfo('icon')  
+    meta_icon = addon.getAddonInfo('icon')
     if tvdb_id:
         if season and episode:
             meta_url = "plugin://plugin.video.meta/tv/play/%s/%s/%s/%s" % (tvdb_id,season,episode,'select')
@@ -60,7 +79,7 @@ def play(channel_id,channel_name,title,season,episode):
             'thumbnail': meta_icon,
             'icon': meta_icon,
             'is_playable': False,
-             })         
+             })
         meta_url = "plugin://plugin.video.meta/tv/tvdb/%s" % (tvdb_id)
         items.append({
         'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
@@ -71,10 +90,10 @@ def play(channel_id,channel_name,title,season,episode):
          })
         try:
             addon = xbmcaddon.Addon('plugin.video.sickrage')
-            sick_icon =  addon.getAddonInfo('icon')            
+            sick_icon =  addon.getAddonInfo('icon')
             if addon:
                 items.append({
-                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title), 
+                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title),
                 'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                 'thumbnail': sick_icon,
                 'icon': sick_icon,
@@ -93,16 +112,16 @@ def play(channel_id,channel_name,title,season,episode):
             'thumbnail': meta_icon,
             'icon': meta_icon,
             'is_playable': False,
-             }) 
+             })
             try:
                 addon = xbmcaddon.Addon('plugin.video.couchpotato_manager')
                 couch_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]CouchPotato[/B][/COLOR]' % (title), 
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]CouchPotato[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.couchpotato_manager/movies/add/?title=%s" % (title),
                     'thumbnail': couch_icon,
-                    'icon': couch_icon,                     
+                    'icon': couch_icon,
                     })
             except:
                 pass
@@ -114,7 +133,7 @@ def play(channel_id,channel_name,title,season,episode):
             'thumbnail': meta_icon,
             'icon': meta_icon,
             'is_playable': False,
-             }) 
+             })
             meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (title)
             items.append({
             'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie search[/B][/COLOR]' % (title),
@@ -122,27 +141,39 @@ def play(channel_id,channel_name,title,season,episode):
             'thumbnail': meta_icon,
             'icon': meta_icon,
             'is_playable': False,
-             }) 
+             })
             try:
                 addon = xbmcaddon.Addon('plugin.video.sickrage')
                 sick_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title), 
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                     'thumbnail': sick_icon,
-                    'icon': sick_icon,                    
+                    'icon': sick_icon,
                     })
             except:
                 pass
-   
+    clock_icon = get_icon_path('alarm')
+    items.append({
+    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Remind[/B][/COLOR]' % (title),
+    'path':plugin.url_for('remind', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"),title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop),
+    'thumbnail': clock_icon,
+    'icon': clock_icon,
+    })
+    items.append({
+    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Cancel[/B][/COLOR]' % (title),
+    'path':plugin.url_for('cancel_remind', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"),title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop),
+    'thumbnail': clock_icon,
+    'icon': clock_icon,
+    })
     items.extend(channel_items)
     return items
 
-    
+
 @plugin.route('/channel/<channel_id>/<channel_name>')
 def channel(channel_id,channel_name):
-    
+
     addons = plugin.get_storage('addons')
     items = []
     for addon in addons:
@@ -153,7 +184,7 @@ def channel(channel_id,channel_name):
         try:
             addon = xbmcaddon.Addon(addon)
             if addon:
-                icon = addon.getAddonInfo('icon') 
+                icon = addon.getAddonInfo('icon')
                 item = {
                 'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),addon.getAddonInfo('name')),
                 'path': path,
@@ -180,8 +211,8 @@ def utc2local (utc):
     epoch = time.mktime(utc.timetuple())
     offset = datetime.fromtimestamp (epoch) - datetime.utcfromtimestamp (epoch)
     return utc + offset
-    
-    
+
+
 def local_time(ttime,year,month,day):
     match = re.search(r'(.{1,2}):(.{2}) {0,1}(.{2})',ttime)
     if match:
@@ -203,7 +234,7 @@ def local_time(ttime,year,month,day):
 
 
 
- 
+
 def get_url(url):
     headers = {'user-agent': 'Mozilla/5.0 (BB10; Touch) AppleWebKit/537.10+ (KHTML, like Gecko) Version/10.0.9.2372 Mobile Safari/537.10+'}
     try:
@@ -219,7 +250,7 @@ def store_channels():
         plugin.set_setting('ini_reload','false')
     else:
         return
-        
+
     addons = plugin.get_storage('addons')
     items = []
     for addon in addons:
@@ -246,7 +277,7 @@ def store_channels():
         stat = xbmcvfs.Stat(path)
         modified = str(stat.st_mtime())
         plugin.set_setting('ini_last_modified',modified)
-    
+
     try:
         if plugin.get_setting('ini_type') == '1':
             f = xmltv_f
@@ -317,15 +348,15 @@ class FileWrapper(object):
         return self.bytesRead
 
 
-def get_conn():    
+def get_conn():
     profilePath = xbmc.translatePath(plugin.addon.getAddonInfo('profile'))
     if not os.path.exists(profilePath):
         os.makedirs(profilePath)
-    databasePath = os.path.join(profilePath, 'source.db')    
-    
+    databasePath = os.path.join(profilePath, 'source.db')
+
     conn = sqlite3.connect(databasePath, detect_types=sqlite3.PARSE_DECLTYPES)
     conn.execute('PRAGMA foreign_keys = ON')
-    conn.row_factory = sqlite3.Row        
+    conn.row_factory = sqlite3.Row
     return conn
 
 
@@ -419,7 +450,7 @@ def xml_channels():
         plugin.set_setting('xmltv_last_modified',modified)
 
     dialog.notification("TV Listings (xmltv)","finished downloading xmltv file")
-    
+
     xml_f = FileWrapper(xmltv_file)
     if xml_f.size == 0:
         return
@@ -512,7 +543,7 @@ def xml_channels():
     plugin.set_setting('xmltv_updating', 'false')
 
 @plugin.route('/channels')
-def channels():  
+def channels():
     conn = get_conn()
     c = conn.cursor()
 
@@ -531,7 +562,7 @@ def channels():
     return items
 
 @plugin.route('/now_next_time/<seconds>')
-def now_next_time(seconds):  
+def now_next_time(seconds):
     conn = get_conn()
     c = conn.cursor()
 
@@ -546,7 +577,7 @@ def now_next_time(seconds):
 
         c.execute('SELECT start FROM programmes WHERE channel=? ORDER BY start', [channel_id])
         programmes = [row['start'] for row in c]
-        
+
         times = sorted(programmes)
         max = len(times)
         less = [i for i in times if i <= total_seconds]
@@ -568,7 +599,7 @@ def now_next_time(seconds):
 
         next = ''
         next_title = ''
-        if index+1 < max: 
+        if index+1 < max:
             next = times[index + 1]
             c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,next])
             next = datetime.fromtimestamp(next)
@@ -599,7 +630,7 @@ def now_next_time(seconds):
     return items
 
 @plugin.route('/hourly')
-def hourly():  
+def hourly():
     items = []
 
     dt = datetime.now()
@@ -618,7 +649,7 @@ def hourly():
 
 
 @plugin.route('/prime')
-def prime():  
+def prime():
     prime = plugin.get_setting('prime')
     dt = datetime.now()
     dt = dt.replace(hour=int(prime), minute=0, second=0)
@@ -628,14 +659,14 @@ def prime():
 
 
 @plugin.route('/now_next')
-def now_next():  
+def now_next():
     dt = datetime.now()
     total_seconds = str(time.mktime(dt.timetuple()))
     items = now_next_time(total_seconds)
     return items
 
 @plugin.route('/listing/<channel_id>/<channel_name>')
-def listing(channel_id,channel_name):  
+def listing(channel_id,channel_name):
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
@@ -649,19 +680,20 @@ def listing(channel_id,channel_name):
         title = row['title']
         sub_title = row['sub_title']
         start = row['start']
+        stop = row['stop']
         date = row['date']
         plot = row['description']
         season = row['series']
         episode = row['episode']
         categories = row['categories']
-        
+
         dt = datetime.fromtimestamp(start)
         day = dt.day
         if day != last_day:
             last_day = day
             label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
-            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)}) 
-            
+            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id, channel_name=channel_name)})
+
         if not season:
             season = '0'
         if not episode:
@@ -683,14 +715,14 @@ def listing(channel_id,channel_name):
             else:
                 label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
 
-        
+
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
-        item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode)
+        item['path'] = plugin.url_for('play', channel_id=channel_id, channel_name=channel_name, title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
         items.append(item)
     c.close()
 
-    return items  
+    return items
 
 
 @plugin.route('/search/<programme_name>')
@@ -713,14 +745,14 @@ def search(programme_name):
         season = row['series']
         episode = row['episode']
         categories = row['categories']
-        
+
         dt = datetime.fromtimestamp(start)
         day = dt.day
         if day != last_day:
             last_day = day
             label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
-            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))}) 
-            
+            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
+
         if not season:
             season = '0'
         if not episode:
@@ -763,7 +795,7 @@ index_page = False
 @plugin.route('/')
 def index():
     index_page = True
-    items = [  
+    items = [
     {
         'label': '[COLOR green][B]Now Next[/B][/COLOR]',
         'path': plugin.url_for('now_next'),
@@ -786,7 +818,7 @@ def index():
     },
     ]
     return items
-    
+
 if __name__ == '__main__':
     xml_channels()
     store_channels()
