@@ -387,7 +387,7 @@ def xml_channels():
     conn.execute(
     'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, icon TEXT, PRIMARY KEY (id))')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
+    'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
 
     dialog.notification("TV Listings (xmltv)","downloading xmltv file")
     if plugin.get_setting('xmltv_type') == '1':
@@ -449,6 +449,9 @@ def xml_channels():
                 start = programme.attrib['start']
                 start = xml2utc(start)
                 start = utc2local(start)
+                stop = programme.attrib['stop']
+                stop = xml2utc(stop)
+                stop = utc2local(stop)
                 channel = programme.attrib['channel']
                 title = programme.find('title').text
                 match = re.search(r'(.*?)"}.*?\(\?\)$',title) #BUG in webgrab
@@ -487,7 +490,9 @@ def xml_channels():
 
                 total_seconds = time.mktime(start.timetuple())
                 start = int(total_seconds)
-                conn.execute("INSERT OR IGNORE INTO programmes(channel ,title , sub_title , start , date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", [channel ,title , sub_title , start , date, description , series , episode , categories])
+                total_seconds = time.mktime(stop.timetuple())
+                stop = int(total_seconds)
+                conn.execute("INSERT OR IGNORE INTO programmes(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [channel ,title , sub_title , start , stop, date, description , series , episode , categories])
                 if (now - last).seconds > 0.5:
                     dialog.notification("TV Listings (xmltv)","loading programmes: "+channel)
                     last = now
@@ -530,7 +535,7 @@ def now_next_time(seconds):
     items = []
     for (channel_id, channel_name, img_url) in channels:
 
-        c.execute('SELECT start FROM programmes WHERE channel=?', [channel_id])
+        c.execute('SELECT start FROM programmes WHERE channel=? ORDER BY start', [channel_id])
         programmes = [row['start'] for row in c]
         
         times = sorted(programmes)
@@ -544,15 +549,21 @@ def now_next_time(seconds):
         c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,now])
         now = datetime.fromtimestamp(now)
         now = "%02d:%02d" % (now.hour,now.minute)
-        now_title = c.fetchone()['title']
+        row = c.fetchone()
+        now_title = row['title']
+        now_stop = row['stop']
+        if now_stop < total_seconds:
+            now_title = "[COLOR orange][I]%s[/I][/COLOR]" % now_title
+        else:
+            now_title = "[COLOR orange][B]%s[/B][/COLOR]" % now_title
 
         next = ''
         next_title = ''
         if index+1 < max: 
             next = times[index + 1]
             c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,next])
-            next = datetime.fromtimestamp(next)                
-            next = "%02d:%02d" % (next.hour,next.minute)                
+            next = datetime.fromtimestamp(next)
+            next = "%02d:%02d" % (next.hour,next.minute)
             next_title = c.fetchone()['title']
 
         after = ''
@@ -565,10 +576,10 @@ def now_next_time(seconds):
             after_title = c.fetchone()['title']
 
         if  plugin.get_setting('show_channel_name') == 'true':
-            label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
+            label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
             (channel_name,now,now_title,next,next_title,after,after_title)
         else:
-            label = "%s [COLOR orange][B]%s[/B][/COLOR] %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
+            label = "%s %s %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
             (now,now_title,next,next_title,after,after_title)
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
