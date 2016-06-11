@@ -45,7 +45,18 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     icon = ''
     description = "%s: %s" % (channel_name,title)
     xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
-            (title.encode('utf-8', 'replace'), title.encode('utf-8', 'replace'), description.encode('utf-8', 'replace'), icon, timeToNotification))
+        (title.encode('utf-8', 'replace'), title.encode('utf-8', 'replace'), description.encode('utf-8', 'replace'), icon, timeToNotification))
+
+    channels = plugin.get_storage('change_channel')
+    if not channel_id in channels:
+        return
+    path = channels[channel_id]
+    xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(%s),%d,True)' %
+        (title.encode('utf-8', 'replace'), path, timeToNotification))
+    t = datetime.fromtimestamp(float(stop)) - datetime.now()
+    timeToNotification = ((t.days * 86400) + t.seconds) / 60
+    xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' % 
+        (title.encode('utf-8', 'replace'), timeToNotification))
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
