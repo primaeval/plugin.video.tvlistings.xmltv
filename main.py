@@ -75,6 +75,24 @@ def get_conn():
 def clear_reminders():
     conn = get_conn()
     c = conn.cursor()
+    try:
+        c.execute('SELECT * FROM remind')
+        for row in c:
+            channel_id = row['channel']
+            start = row['start']
+            title = row['title']
+            xbmc.executebuiltin('CancelAlarm(%s,False)' % (channel_id+title+str(start)))
+
+        c.execute('SELECT * FROM watch')
+        for row in c:
+            channel_id = row['channel']
+            start = row['start']
+            title = row['title']
+            xbmc.executebuiltin('CancelAlarm(%s-start,False)' % (channel_id+title+str(start)))
+            xbmc.executebuiltin('CancelAlarm(%s-stop,False)' % (channel_id+title+str(start)))
+    except:
+        pass
+
     c.execute('DELETE FROM remind')
     c.execute('DELETE FROM watch')
     conn.commit()
