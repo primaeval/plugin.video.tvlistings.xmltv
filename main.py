@@ -45,7 +45,7 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     icon = ''
     description = "%s: %s" % (channel_name,title)
     xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
-        (title, title, description, icon, timeToNotification))
+        (title, title, description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
 
 
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
@@ -57,13 +57,13 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     t = datetime.fromtimestamp(float(start)) - datetime.now()
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(%s),%d,False)' %
-        (title, path, timeToNotification))
+        (title, path, timeToNotification - int(plugin.get_setting('remind_before'))))
         
     if plugin.get_setting('watch_and_stop') == 'true':
         t = datetime.fromtimestamp(float(stop)) - datetime.now()
         timeToNotification = ((t.days * 86400) + t.seconds) / 60
         xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' % 
-            (title, timeToNotification))
+            (title, timeToNotification + int(plugin.get_setting('remind_after'))))
 
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
