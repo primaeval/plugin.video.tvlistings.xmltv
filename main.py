@@ -70,7 +70,7 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,start])
+    c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     row = c.fetchone()
     c.execute("INSERT OR IGNORE INTO remind(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
@@ -95,7 +95,7 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,start])
+    c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     row = c.fetchone()
     c.execute("INSERT OR IGNORE INTO watch(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
@@ -112,7 +112,7 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute('DELETE FROM remind WHERE channel=? AND start=?', [channel_id,start])
+    c.execute('DELETE FROM remind WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
 
     conn.commit()
     conn.close()
@@ -130,7 +130,7 @@ def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute('DELETE FROM watch WHERE channel=? AND start=?', [channel_id,start])
+    c.execute('DELETE FROM watch WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     conn.commit()
     conn.close()
 
