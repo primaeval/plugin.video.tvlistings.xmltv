@@ -965,12 +965,12 @@ def search(programme_name):
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
         title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+        if channel_id in remind:
+            if start in remind[channel_id]:
+                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
         if channel_id in watch:
             if start in watch[channel_id]:
                 title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
-        elif channel_id in remind:
-            if start in remind[channel_id]:
-                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
@@ -1044,12 +1044,12 @@ def reminders():
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
         title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+        if channel_id in remind:
+            if start in remind[channel_id]:
+                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
         if channel_id in watch:
             if start in watch[channel_id]:
                 title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
-        elif channel_id in remind:
-            if start in remind[channel_id]:
-                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
