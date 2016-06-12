@@ -5,6 +5,9 @@ import time
 import xbmcaddon
 import xbmc
 
+xbmcaddon.Addon(ADDON).setSetting('playing_channel','')
+xbmcaddon.Addon(ADDON).setSetting('playing_title','')
+xbmcaddon.Addon(ADDON).setSetting('playing_start','')
 main.refresh_reminders()
 monitor = xbmc.Monitor()
 while not monitor.abortRequested():

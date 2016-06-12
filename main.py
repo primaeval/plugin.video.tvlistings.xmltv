@@ -38,6 +38,27 @@ def get_tvdb_id(name):
         tvdb_id = tvdb_match.group(1)
     return tvdb_id
 
+@plugin.route('/play_channel/<channel_id>/<title>/<start>')
+def play_channel(channel_id,title,start):
+    channels = plugin.get_storage('change_channel')
+    if not channel_id in channels:
+        return
+    path = channels[channel_id]
+    plugin.set_setting('playing_channel',channel_id)
+    plugin.set_setting('playing_title',title)
+    plugin.set_setting('playing_start',start)
+    xbmc.executebuiltin('PlayMedia(%s)' % path)
+
+@plugin.route('/stop_playing/<channel_id>/<title>/<start>')
+def stop_playing(channel_id,title,start):
+    if plugin.get_setting('playing_channel') != channel_id:
+        return
+    elif plugin.get_setting('playing_start') != start:
+        return
+    plugin.set_setting('playing_channel','')
+    plugin.set_setting('playing_title','')
+    plugin.set_setting('playing_start','')
+    xbmc.executebuiltin('PlayerControl(Stop)')
 
 def get_conn():
     profilePath = xbmc.translatePath(plugin.addon.getAddonInfo('profile'))
@@ -64,21 +85,39 @@ def refresh_reminders():
     try:
         conn = get_conn()
         c = conn.cursor()
-        for table in ('remind','watch'):
-            c.execute('SELECT * FROM %s' % table)
-            for row in c:
-                start = row['start']
-                t = datetime.fromtimestamp(float(start)) - datetime.now()
+
+        c.execute('SELECT * FROM remind')
+        for row in c:
+            start = row['start']
+            t = datetime.fromtimestamp(float(start)) - datetime.now()
+            timeToNotification = ((t.days * 86400) + t.seconds) / 60
+            icon = ''
+            description = "%s: %s" % (row['channel'],row['title'])
+            xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
+                (row['channel']+row['title']+str(start), row['title'], description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
+
+        c.execute('SELECT * FROM watch')
+        for row in c:
+            channel_id = row['channel']
+            start = row['start']
+            stop = row['stop']
+            path = channels[channel_id]
+            t = datetime.fromtimestamp(float(start)) - datetime.now()
+            timeToNotification = ((t.days * 86400) + t.seconds) / 60
+            xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(plugin://plugin.video.tvlistings.xmltv/play_channel/%s),%d,False)' %
+                (channel_id+title+str(start), channel_id, timeToNotification - int(plugin.get_setting('remind_before'))))
+
+            if plugin.get_setting('watch_and_stop') == 'true':
+                t = datetime.fromtimestamp(float(stop)) - datetime.now()
                 timeToNotification = ((t.days * 86400) + t.seconds) / 60
-                icon = ''
-                description = "%s: %s" % (row['channel'],row['title'])
-                xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
-                    (row['channel']+row['title']+str(start), row['title'], description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
+                xbmc.executebuiltin('AlarmClock(%s-stop,PlayMedia(plugin://plugin.video.tvlistings.xmltv/stop_playing),%d,True)' %
+                    (channel_id+title+str(start), timeToNotification + int(plugin.get_setting('remind_after'))))
+
         conn.commit()
         conn.close()
     except:
         pass
-    
+
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def remind(channel_id,channel_name,title,season,episode,start,stop):
     t = datetime.fromtimestamp(float(start)) - datetime.now()
@@ -104,15 +143,15 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     path = channels[channel_id]
     t = datetime.fromtimestamp(float(start)) - datetime.now()
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
-    xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(%s),%d,False)' %
-        (channel_id+title+str(start), path, timeToNotification - int(plugin.get_setting('remind_before'))))
+    xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(plugin://plugin.video.tvlistings.xmltv/play_channel/%s/%s/%s),%d,False)' %
+        (channel_id+title+str(start), channel_id,title,str(start), timeToNotification - int(plugin.get_setting('remind_before'))))
 
     #TODO check for overlapping times
     if plugin.get_setting('watch_and_stop') == 'true':
         t = datetime.fromtimestamp(float(stop)) - datetime.now()
         timeToNotification = ((t.days * 86400) + t.seconds) / 60
-        xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' %
-            (channel_id+title+str(start), timeToNotification + int(plugin.get_setting('remind_after'))))
+        xbmc.executebuiltin('AlarmClock(%s-stop,PlayMedia(plugin://plugin.video.tvlistings.xmltv/stop_playing/%s/%s/%s),%d,True)' %
+            (channel_id+title+str(start), channel_id,title,str(start), timeToNotification + int(plugin.get_setting('remind_after'))))
 
     conn = get_conn()
     c = conn.cursor()
