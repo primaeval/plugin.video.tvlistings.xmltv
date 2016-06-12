@@ -5,6 +5,7 @@ import time
 import xbmcaddon
 import xbmc
 
+main.refresh_reminders()
 monitor = xbmc.Monitor()
 while not monitor.abortRequested():
     try:

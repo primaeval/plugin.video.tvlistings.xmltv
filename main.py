@@ -59,6 +59,23 @@ def clear_reminders():
     conn.commit()
     conn.close()
 
+
+def refresh_reminders():
+    conn = get_conn()
+    c = conn.cursor()
+    for table in ('remind','watch'):
+        c.execute('SELECT * FROM %s' % table)
+        for row in c:
+            start = row['start']
+            t = datetime.fromtimestamp(float(start)) - datetime.now()
+            timeToNotification = ((t.days * 86400) + t.seconds) / 60
+            icon = ''
+            description = "%s: %s" % (row['channel'],row['title'])
+            xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
+                (row['channel']+row['title']+str(start), row['title'], description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
+    conn.commit()
+    conn.close()
+    
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def remind(channel_id,channel_name,title,season,episode,start,stop):
     t = datetime.fromtimestamp(float(start)) - datetime.now()
@@ -66,7 +83,7 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     icon = ''
     description = "%s: %s" % (channel_name,title)
     xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
-        (title, title, description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
+        (channel_id+title+str(start), title, description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
 
     conn = get_conn()
     c = conn.cursor()
@@ -85,13 +102,14 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     t = datetime.fromtimestamp(float(start)) - datetime.now()
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(%s),%d,False)' %
-        (title, path, timeToNotification - int(plugin.get_setting('remind_before'))))
+        (channel_id+title+str(start), path, timeToNotification - int(plugin.get_setting('remind_before'))))
 
+    #TODO check for overlapping times
     if plugin.get_setting('watch_and_stop') == 'true':
         t = datetime.fromtimestamp(float(stop)) - datetime.now()
         timeToNotification = ((t.days * 86400) + t.seconds) / 60
         xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' %
-            (title, timeToNotification + int(plugin.get_setting('remind_after'))))
+            (channel_id+title+str(start), timeToNotification + int(plugin.get_setting('remind_after'))))
 
     conn = get_conn()
     c = conn.cursor()
@@ -108,7 +126,7 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     icon = ''
     description = "%s: %s" % (channel_name,title)
-    xbmc.executebuiltin('CancelAlarm(%s,False)' % (title))
+    xbmc.executebuiltin('CancelAlarm(%s,False)' % (channel_id+title+str(start)))
 
     conn = get_conn()
     c = conn.cursor()
@@ -125,8 +143,8 @@ def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
     icon = ''
     description = "%s: %s" % (channel_name,title)
 
-    xbmc.executebuiltin('CancelAlarm(%s-start,False)' % (title))
-    xbmc.executebuiltin('CancelAlarm(%s-stop,False)' % (title))
+    xbmc.executebuiltin('CancelAlarm(%s-start,False)' % (channel_id+title+str(start)))
+    xbmc.executebuiltin('CancelAlarm(%s-stop,False)' % (channel_id+title+str(start)))
 
     conn = get_conn()
     c = conn.cursor()
@@ -727,7 +745,7 @@ def now_next_time(seconds):
         elif after_start in remind:
             after_title_format = "[COLOR red][B]%s[/B][/COLOR]" % after_title
         else:
-            after_title_format = "[COLOR white][B]%s[/B][/COLOR]" % after_title
+            after_title_format = "[COLOR grey][B]%s[/B][/COLOR]" % after_title
 
         if  plugin.get_setting('show_channel_name') == 'true':
             label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s %s %s %s" % \
