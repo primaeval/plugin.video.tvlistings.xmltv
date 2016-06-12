@@ -50,6 +50,14 @@ def get_conn():
     conn.row_factory = sqlite3.Row
     return conn
 
+@plugin.route('/clear_reminders')
+def clear_reminders():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('DELETE FROM remind')
+    c.execute('DELETE FROM watch')
+    conn.commit()
+    conn.close()
 
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def remind(channel_id,channel_name,title,season,episode,start,stop):
@@ -101,12 +109,27 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
     icon = ''
     description = "%s: %s" % (channel_name,title)
     xbmc.executebuiltin('CancelAlarm(%s,False)' % (title))
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('DELETE FROM remind WHERE channel=? AND start=?', [channel_id,start])
+
+    conn.commit()
+    conn.close()
+
+
+@plugin.route('/cancel_watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
+def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
+    t = datetime.fromtimestamp(float(start)) - datetime.now()
+    timeToNotification = ((t.days * 86400) + t.seconds) / 60
+    icon = ''
+    description = "%s: %s" % (channel_name,title)
+
     xbmc.executebuiltin('CancelAlarm(%s-start,False)' % (title))
     xbmc.executebuiltin('CancelAlarm(%s-stop,False)' % (title))
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute('DELETE FROM remind WHERE channel=? AND start=?', [channel_id,start])
     c.execute('DELETE FROM watch WHERE channel=? AND start=?', [channel_id,start])
     conn.commit()
     conn.close()
@@ -216,8 +239,14 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                 pass
     clock_icon = get_icon_path('alarm')
     items.append({
-    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Remind[/B][/COLOR]' % (title),
+    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Remind[/B][/COLOR]' % (title),
     'path':plugin.url_for('remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
+    'thumbnail': clock_icon,
+    'icon': clock_icon,
+    })
+    items.append({
+    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Cancel[/B][/COLOR]' % (title),
+    'path':plugin.url_for('cancel_remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
     'thumbnail': clock_icon,
     'icon': clock_icon,
     })
@@ -229,12 +258,13 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
         'thumbnail': clock_icon,
         'icon': clock_icon,
         })
-    items.append({
-    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Cancel[/B][/COLOR]' % (title),
-    'path':plugin.url_for('cancel_remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
-    'thumbnail': clock_icon,
-    'icon': clock_icon,
-    })
+        items.append({
+        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Cancel[/B][/COLOR]' % (title),
+        'path':plugin.url_for('cancel_watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
+        'thumbnail': clock_icon,
+        'icon': clock_icon,
+        })
+
     items.extend(channel_items)
     return items
 
