@@ -38,6 +38,19 @@ def get_tvdb_id(name):
         tvdb_id = tvdb_match.group(1)
     return tvdb_id
 
+
+def get_conn():
+    profilePath = xbmc.translatePath(plugin.addon.getAddonInfo('profile'))
+    if not os.path.exists(profilePath):
+        os.makedirs(profilePath)
+    databasePath = os.path.join(profilePath, 'source.db')
+
+    conn = sqlite3.connect(databasePath, detect_types=sqlite3.PARSE_DECLTYPES)
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def remind(channel_id,channel_name,title,season,episode,start,stop):
     t = datetime.fromtimestamp(float(start)) - datetime.now()
@@ -47,6 +60,13 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
         (title, title, description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
 
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,start])
+    row = c.fetchone()
+    c.execute("INSERT OR IGNORE INTO remind(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
+    conn.commit()
+    conn.close()
 
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def watch(channel_id,channel_name,title,season,episode,start,stop):
@@ -58,12 +78,20 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(%s),%d,False)' %
         (title, path, timeToNotification - int(plugin.get_setting('remind_before'))))
-        
+
     if plugin.get_setting('watch_and_stop') == 'true':
         t = datetime.fromtimestamp(float(stop)) - datetime.now()
         timeToNotification = ((t.days * 86400) + t.seconds) / 60
-        xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' % 
+        xbmc.executebuiltin('AlarmClock(%s-stop,PlayerControl(Stop),%d,True)' %
             (title, timeToNotification + int(plugin.get_setting('remind_after'))))
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,start])
+    row = c.fetchone()
+    c.execute("INSERT OR IGNORE INTO watch(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
+    conn.commit()
+    conn.close()
 
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
@@ -75,6 +103,14 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
     xbmc.executebuiltin('CancelAlarm(%s,False)' % (title))
     xbmc.executebuiltin('CancelAlarm(%s-start,False)' % (title))
     xbmc.executebuiltin('CancelAlarm(%s-stop,False)' % (title))
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('DELETE FROM remind WHERE channel=? AND start=?', [channel_id,start])
+    c.execute('DELETE FROM watch WHERE channel=? AND start=?', [channel_id,start])
+    conn.commit()
+    conn.close()
+
 
 @plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def play(channel_id,channel_name,title,season,episode,start,stop):
@@ -380,18 +416,6 @@ class FileWrapper(object):
         return self.bytesRead
 
 
-def get_conn():
-    profilePath = xbmc.translatePath(plugin.addon.getAddonInfo('profile'))
-    if not os.path.exists(profilePath):
-        os.makedirs(profilePath)
-    databasePath = os.path.join(profilePath, 'source.db')
-
-    conn = sqlite3.connect(databasePath, detect_types=sqlite3.PARSE_DECLTYPES)
-    conn.execute('PRAGMA foreign_keys = ON')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
 def xml_channels():
     try:
         updating = plugin.get_setting('xmltv_updating')
@@ -460,6 +484,10 @@ def xml_channels():
     'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, icon TEXT, PRIMARY KEY (id))')
     conn.execute(
     'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS remind(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS watch(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
 
     dialog.notification("TV Listings (xmltv)","downloading xmltv file")
     if plugin.get_setting('xmltv_type') == '1':
@@ -606,7 +634,10 @@ def now_next_time(seconds):
 
     items = []
     for (channel_id, channel_name, img_url) in channels:
-
+        c.execute('SELECT * FROM remind WHERE channel=? ORDER BY start', [channel_id])
+        remind = [row['start'] for row in c]
+        c.execute('SELECT * FROM watch WHERE channel=? ORDER BY start', [channel_id])
+        watch = [row['start'] for row in c]
         c.execute('SELECT start FROM programmes WHERE channel=? ORDER BY start', [channel_id])
         programmes = [row['start'] for row in c]
 
@@ -616,43 +647,64 @@ def now_next_time(seconds):
         index = len(less) - 1
         if index < 0:
             continue
-        now = times[index]
+        now_start = times[index]
 
-        c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,now])
-        now = datetime.fromtimestamp(now)
+        c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,now_start])
+        now = datetime.fromtimestamp(now_start)
         now = "%02d:%02d" % (now.hour,now.minute)
         row = c.fetchone()
         now_title = row['title']
         now_stop = row['stop']
         if now_stop < total_seconds:
-            now_title = "[COLOR orange][I]%s[/I][/COLOR]" % now_title
+            now_title = "[I]%s[/I]" % now_title
         else:
-            now_title = "[COLOR orange][B]%s[/B][/COLOR]" % now_title
+            now_title = "[B]%s[/B]" % now_title
+
+        if now_start in watch:
+            now_title_format = "[COLOR blue]%s[/COLOR]" % now_title
+        elif now_start in remind:
+            now_title_format = "[COLOR red]%s[/COLOR]" % now_title
+        else:
+            now_title_format = "[COLOR orange]%s[/COLOR]" % now_title
 
         next = ''
         next_title = ''
         if index+1 < max:
-            next = times[index + 1]
-            c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,next])
-            next = datetime.fromtimestamp(next)
+            next_start = times[index + 1]
+            c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,next_start])
+            next = datetime.fromtimestamp(next_start)
             next = "%02d:%02d" % (next.hour,next.minute)
             next_title = c.fetchone()['title']
+
+        if next_start in watch:
+            next_title_format = "[COLOR blue][B]%s[/B][/COLOR]" % next_title
+        elif next_start in remind:
+            next_title_format = "[COLOR red][B]%s[/B][/COLOR]" % next_title
+        else:
+            next_title_format = "[COLOR white][B]%s[/B][/COLOR]" % next_title
 
         after = ''
         after_title = ''
         if (index+2) < max:
-            after = times[index + 2]
-            c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,after])
-            after = datetime.fromtimestamp(after)
+            after_start = times[index + 2]
+            c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,after_start])
+            after = datetime.fromtimestamp(after_start)
             after = "%02d:%02d" % (after.hour,after.minute)
             after_title = c.fetchone()['title']
 
-        if  plugin.get_setting('show_channel_name') == 'true':
-            label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
-            (channel_name,now,now_title,next,next_title,after,after_title)
+        if after_start in watch:
+            after_title_format = "[COLOR blue][B]%s[/B][/COLOR]" % after_title
+        elif after_start in remind:
+            after_title_format = "[COLOR red][B]%s[/B][/COLOR]" % after_title
         else:
-            label = "%s %s %s [COLOR white][B]%s[/B][/COLOR] %s [COLOR grey][B]%s[/B][/COLOR]" % \
-            (now,now_title,next,next_title,after,after_title)
+            after_title_format = "[COLOR white][B]%s[/B][/COLOR]" % after_title
+
+        if  plugin.get_setting('show_channel_name') == 'true':
+            label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s %s %s %s" % \
+            (channel_name,now,now_title_format,next,next_title_format,after,after_title_format)
+        else:
+            label = "%s %s %s %s %s %s" % \
+            (now,now_title_format,next,next_title_format,after,after_title_format)
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
@@ -703,6 +755,10 @@ def listing(channel_id,channel_name):
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
     channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+    c.execute('SELECT * FROM remind WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
+    remind = [row['start'] for row in c]
+    c.execute('SELECT * FROM watch WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
+    watch = [row['start'] for row in c]
     c.execute('SELECT * FROM programmes WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
     items = channel(channel_id,channel_name)
     last_day = ''
@@ -736,16 +792,24 @@ def listing(channel_id,channel_name):
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
+
+        if start in watch:
+            title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
+        elif start in remind:
+            title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
+        else:
+            title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name,ttime,title,plot)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s" % (channel_name,ttime,title_format,plot)
             else:
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name,ttime,title)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s" % (channel_name,ttime,title_format)
         else:
             if plugin.get_setting('show_plot') == 'true':
-                label = "%s [COLOR orange][B]%s[/B][/COLOR] %s" % (ttime,title,plot)
+                label = "%s %s %s" % (ttime,title_format,plot)
             else:
-                label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
+                label = "%s %s" % (ttime,title_format)
 
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
@@ -763,6 +827,20 @@ def search(programme_name):
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
     channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+
+    c.execute('SELECT * FROM remind ORDER BY channel, start')
+    remind = {}
+    for row in c:
+        if not row['channel'] in remind:
+            remind[row['channel']] = []
+        remind[row['channel']].append(row['start'])
+    c.execute('SELECT * FROM watch ORDER BY channel, start')
+    watch = {}
+    for row in c:
+        if not row['channel'] in watch:
+            watch[row['channel']] = []
+        watch[row['channel']].append(row['start'])
+
     c.execute("SELECT * FROM programmes WHERE LOWER(title) LIKE LOWER(?) ORDER BY start, channel", ['%'+programme_name.decode("utf8")+'%'])
     last_day = ''
     items = []
@@ -796,16 +874,24 @@ def search(programme_name):
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
+        title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+        if channel_id in watch:
+            if start in watch[channel_id]:
+                title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
+        elif channel_id in remind:
+            if start in remind[channel_id]:
+                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
+
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR] %s" % (channel_name,ttime,title,plot)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s" % (channel_name,ttime,title_format,plot)
             else:
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s [COLOR orange][B]%s[/B][/COLOR]" % (channel_name,ttime,title)
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s" % (channel_name,ttime,title_format)
         else:
             if plugin.get_setting('show_plot') == 'true':
-                label = "%s [COLOR orange][B]%s[/B][/COLOR] %s" % (ttime,title,plot)
+                label = "%s %s %s" % (ttime,title_format,plot)
             else:
-                label = "%s [COLOR orange][B]%s[/B][/COLOR]" % (ttime,title)
+                label = "%s %s" % (ttime,title_format)
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
