@@ -61,20 +61,23 @@ def clear_reminders():
 
 
 def refresh_reminders():
-    conn = get_conn()
-    c = conn.cursor()
-    for table in ('remind','watch'):
-        c.execute('SELECT * FROM %s' % table)
-        for row in c:
-            start = row['start']
-            t = datetime.fromtimestamp(float(start)) - datetime.now()
-            timeToNotification = ((t.days * 86400) + t.seconds) / 60
-            icon = ''
-            description = "%s: %s" % (row['channel'],row['title'])
-            xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
-                (row['channel']+row['title']+str(start), row['title'], description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        for table in ('remind','watch'):
+            c.execute('SELECT * FROM %s' % table)
+            for row in c:
+                start = row['start']
+                t = datetime.fromtimestamp(float(start)) - datetime.now()
+                timeToNotification = ((t.days * 86400) + t.seconds) / 60
+                icon = ''
+                description = "%s: %s" % (row['channel'],row['title'])
+                xbmc.executebuiltin('AlarmClock(%s,Notification(%s,%s,10000,%s),%d)' %
+                    (row['channel']+row['title']+str(start), row['title'], description, icon, timeToNotification - int(plugin.get_setting('remind_before'))))
+        conn.commit()
+        conn.close()
+    except:
+        pass
     
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def remind(channel_id,channel_name,title,season,episode,start,stop):
