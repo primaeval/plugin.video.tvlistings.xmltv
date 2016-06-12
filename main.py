@@ -990,6 +990,84 @@ def search(programme_name):
     c.close()
     return items
 
+@plugin.route('/reminders')
+def reminders():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT *, name FROM channels')
+    channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+
+    c.execute('SELECT * FROM remind ORDER BY channel, start')
+    remind = {}
+    for row in c:
+        if not row['channel'] in remind:
+            remind[row['channel']] = []
+        remind[row['channel']].append(row['start'])
+    c.execute('SELECT * FROM watch ORDER BY channel, start')
+    watch = {}
+    for row in c:
+        if not row['channel'] in watch:
+            watch[row['channel']] = []
+        watch[row['channel']].append(row['start'])
+
+    c.execute('SELECT * FROM remind UNION SELECT * FROM watch ORDER BY start, channel')
+    last_day = ''
+    items = []
+    for row in c:
+        channel_id = row['channel']
+        (channel_name, img_url) = channels[channel_id]
+        title = row['title']
+        sub_title = row['sub_title']
+        start = row['start']
+        stop = row['stop']
+        date = row['date']
+        plot = row['description']
+        season = row['series']
+        episode = row['episode']
+        categories = row['categories']
+
+        dt = datetime.fromtimestamp(start)
+        day = dt.day
+        if day != last_day:
+            last_day = day
+            label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
+            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
+
+        if not season:
+            season = '0'
+        if not episode:
+            episode = '0'
+        if date:
+            title = "%s (%s)" % (title,date)
+        if sub_title:
+            plot = "[B]%s[/B]: %s" % (sub_title,plot)
+        ttime = "%02d:%02d" % (dt.hour,dt.minute)
+
+        title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+        if channel_id in watch:
+            if start in watch[channel_id]:
+                title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
+        elif channel_id in remind:
+            if start in remind[channel_id]:
+                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
+
+        if  plugin.get_setting('show_channel_name') == 'true':
+            if plugin.get_setting('show_plot') == 'true':
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s" % (channel_name,ttime,title_format,plot)
+            else:
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s" % (channel_name,ttime,title_format)
+        else:
+            if plugin.get_setting('show_plot') == 'true':
+                label = "%s %s %s" % (ttime,title_format,plot)
+            else:
+                label = "%s %s" % (ttime,title_format)
+
+        item = {'label':label,'icon':img_url,'thumbnail':img_url}
+        item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
+        item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
+        items.append(item)
+    c.close()
+    return items
 
 
 @plugin.route('/search_dialog')
@@ -1024,6 +1102,10 @@ def index():
     {
         'label': '[COLOR yellow][B]Search[/B][/COLOR]',
         'path': plugin.url_for('search_dialog'),
+    },
+    {
+        'label': '[COLOR blue][B]Reminders[/B][/COLOR]',
+        'path': plugin.url_for('reminders'),
     },
     ]
     return items
