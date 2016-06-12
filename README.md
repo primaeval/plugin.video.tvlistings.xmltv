@@ -9,11 +9,12 @@ xmltv TV Listings with catchup playback via Meta4Kodi and live playback via addo
 * Programme Search
 
 ## Notes
+* Create [change_channel] section in addons.ini file for Watch reminders.
 * Huge xmltv files will take forever and may run out of memory.
 * Try using WebGrab++ to make smaller xmltv files.
 * I recommend using Super Favourites to organise your favourite channels.
 * Force ini file reload in the Settings if you change addons.ini or myaddons.ini.
-* xmltv file should reload on a file modification difference. It can be forced too.
+* xmltv file can reload on a file modification difference. It can be forced too.
 
 ## Disclaimer
 
