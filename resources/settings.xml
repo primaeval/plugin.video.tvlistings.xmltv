@@ -1,9 +1,11 @@
 <settings>
-
 <category label="Display">
 <setting id="show_channel_name" label="Show Channel Names" type="bool" default="true" />
 <setting id="show_plot" label="Show Plot" type="bool" default="true" />
 <setting label="Prime Time" type="enum" id="prime" default="21" values="$HOURS" />
+</category>
+<category label="Channels">
+<setting id="channel_context_menu" label="Channel Context Menu [COLOR yellow]Add/Remove/Rename[/COLOR]" type="bool" default="true" />
 </category>
 <category label="XMLTV Data">
 <setting label="XMLTV Type" type="enum" id="xmltv_type" default="File" values="File|Url" />

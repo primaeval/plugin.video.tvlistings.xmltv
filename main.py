@@ -71,6 +71,7 @@ def remove_channel(channel_name,path,icon):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     channel_name = urllib.unquote(channel_name)
     channel_name = re.sub('\[.*?\]','',channel_name)
+    log2(channel_name)
     if not channel_name in channels:
         return
     del channels[channel_name]
@@ -90,7 +91,6 @@ def channel_list():
         img_url = ''
         item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': True}
         item['path'] = channels[channel]
-        log2(channels[channel])
         items.append(item)
 
     return items
@@ -140,6 +140,7 @@ def select_channel(channel_id,channel_name):
 @plugin.route('/choose_channel/<channel_id>/<channel>/<path>')
 def choose_channel(channel_id,channel,path):
     remove_channel(channel_id,'','')
+    remove_channel(channel,'','')
     add_channel(channel_id,path,'','false')
     
     
@@ -1270,8 +1271,15 @@ def index():
     },    
     ]
     return items
+    
+def context_menu():
+    if plugin.get_setting('channel_context_menu') == 'true':
+        xbmcgui.Window(10000).setProperty('XMLTV_CONTEXTMENU_ENABLED', 'True')  
+    else:
+        xbmcgui.Window(10000).clearProperty('XMLTV_CONTEXTMENU_ENABLED')
 
 if __name__ == '__main__':
+    context_menu()
     xml_channels()
     store_channels()
     plugin.run()
