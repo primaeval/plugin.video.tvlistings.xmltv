@@ -14,6 +14,7 @@ import sqlite3
 import os
 
 plugin = Plugin()
+big_list_view = False
 
 def log2(v):
     xbmc.log(repr(v))
@@ -38,9 +39,113 @@ def get_tvdb_id(name):
         tvdb_id = tvdb_match.group(1)
     return tvdb_id
 
+def write_channel_file():
+    xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
+    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/plugin.video.tvlistings.xmltv.ini'
+    f = xbmcvfs.File(file_name,'w')
+    write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel add.\n\n[plugin.video.tvlistings.xmltv]\n"
+    f.write(write_str.encode("utf8"))
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    for channel in sorted(channels):
+        write_str = "%s=%s\n" % (channel,channels[channel])
+        f.write(write_str)
+    f.close()
+    
+@plugin.route('/add_channel/<channel_name>/<path>/<icon>/<ask>')
+def add_channel(channel_name,path,icon,ask):
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    channel_name = urllib.unquote(channel_name)
+    if ask == 'true':
+        dialog = xbmcgui.Dialog()
+        channel_name = dialog.input('Rename channel', channel_name, type=xbmcgui.INPUT_ALPHANUM)
+    if not channel_name:
+        return
+    channels[channel_name] = urllib.unquote(path)
+    channels.sync()
+    
+    write_channel_file()
+
+@plugin.route('/remove_channel/<channel_name>/<path>/<icon>')
+def remove_channel(channel_name,path,icon):
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    channel_name = urllib.unquote(channel_name)
+    #dialog = xbmcgui.Dialog()
+    #channel_name = dialog.input('Rename channel', channel_name, type=xbmcgui.INPUT_ALPHANUM)
+    if not channel_name in channels:
+        return
+    del channels[channel_name]
+    channels.sync()
+    
+    write_channel_file()
+
+    
+@plugin.route('/channel_list')
+def channel_list():
+    global big_list_view
+    big_list_view = True
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    items = []
+    for channel in sorted(channels):
+        label = "%s" % (channel)
+        img_url = ''
+        item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': True}
+        item['path'] = channels[channel]
+        log2(channels[channel])
+        items.append(item)
+
+    return items
+        
+@plugin.route('/channel_remap')
+def channel_remap():
+    global big_list_view
+    big_list_view = True
+    conn = get_conn()
+    c = conn.cursor()
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    c.execute('SELECT * FROM channels')
+    items = []
+    for row in c:
+        channel_id = row['id']
+        channel_name = row['name']
+        img_url = row['icon']
+        if channel_name in channels:
+            label = "[COLOR red][B]%s[/B][/COLOR]" % (channel_name)
+        else:
+            label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
+        item = {'label':label,'icon':img_url,'thumbnail':img_url}
+        item['path'] = plugin.url_for('select_channel', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+        items.append(item)
+    c.close()
+
+    return items
+    
+@plugin.route('/select_channel/<channel_id>/<channel_name>')
+def select_channel(channel_id,channel_name):
+    global big_list_view
+    big_list_view = True
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    items = []
+    for channel in sorted(channels):
+        if channel == channel_id:
+            label = "[COLOR red][B]%s[/B][/COLOR]" % (channel)
+        else:
+            label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel)
+        img_url = ''
+        item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': False}
+        item['path'] = plugin.url_for('choose_channel', channel_id=channel_id, channel=channel, path=urllib.quote(channels[channel],safe=''))
+        items.append(item)
+
+    return items
+    
+@plugin.route('/choose_channel/<channel_id>/<channel>/<path>')
+def choose_channel(channel_id,channel,path):
+    remove_channel(channel,'','')
+    add_channel(channel_id,path,'','false')
+    
+    
 @plugin.route('/play_channel/<channel_id>/<title>/<start>')
 def play_channel(channel_id,title,start):
-    channels = plugin.get_storage('change_channel')
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     if not channel_id in channels:
         return
     path = channels[channel_id]
@@ -155,7 +260,7 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
 
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def watch(channel_id,channel_name,title,season,episode,start,stop):
-    channels = plugin.get_storage('change_channel')
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     if not channel_id in channels:
         return
     path = channels[channel_id]
@@ -215,6 +320,8 @@ def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
 
 @plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def play(channel_id,channel_name,title,season,episode,start,stop):
+    global big_list_view
+    big_list_view = True
     channel_items = channel(channel_id,channel_name)
     items = []
     tvdb_id = ''
@@ -328,7 +435,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     'thumbnail': clock_icon,
     'icon': clock_icon,
     })
-    channels = plugin.get_storage('change_channel')
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     if channel_id in channels:
         items.append({
         'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Watch[/B][/COLOR]' % (title),
@@ -349,9 +456,23 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
 
 @plugin.route('/channel/<channel_id>/<channel_name>')
 def channel(channel_id,channel_name):
-
-    addons = plugin.get_storage('addons')
     items = []
+    
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    if channel_name in channels:
+        addon = xbmcaddon.Addon()
+        icon = addon.getAddonInfo('icon')
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Default'),
+        'path': channels[channel_name],
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': True,
+        }
+        items.append(item)
+        
+    addons = plugin.get_storage('addons')
+
     for addon in addons:
         channels = plugin.get_storage(addon)
         if not channel_id in channels:
@@ -371,6 +492,9 @@ def channel(channel_id,channel_name):
                 items.append(item)
         except:
             pass
+
+
+            
     addon = xbmcaddon.Addon('plugin.video.meta')
     meta_icon = addon.getAddonInfo('icon')
     meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
@@ -712,6 +836,8 @@ def xml_channels():
 
 @plugin.route('/channels')
 def channels():
+    global big_list_view
+    big_list_view = True
     conn = get_conn()
     c = conn.cursor()
 
@@ -731,6 +857,8 @@ def channels():
 
 @plugin.route('/now_next_time/<seconds>')
 def now_next_time(seconds):
+    global big_list_view
+    big_list_view = True
     conn = get_conn()
     c = conn.cursor()
 
@@ -823,6 +951,8 @@ def now_next_time(seconds):
 
 @plugin.route('/hourly')
 def hourly():
+    global big_list_view
+    big_list_view = True
     items = []
 
     dt = datetime.now()
@@ -859,6 +989,8 @@ def now_next():
 
 @plugin.route('/listing/<channel_id>/<channel_name>')
 def listing(channel_id,channel_name):
+    global big_list_view
+    big_list_view = True
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
@@ -931,6 +1063,8 @@ def listing(channel_id,channel_name):
 
 @plugin.route('/search/<programme_name>')
 def search(programme_name):
+    global big_list_view
+    big_list_view = True
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
@@ -1010,6 +1144,8 @@ def search(programme_name):
 
 @plugin.route('/reminders')
 def reminders():
+    global big_list_view
+    big_list_view = True
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
@@ -1096,10 +1232,9 @@ def search_dialog():
         return search(name)
 
 
-index_page = False
+
 @plugin.route('/')
 def index():
-    index_page = True
     items = [
     {
         'label': '[COLOR green][B]Now Next[/B][/COLOR]',
@@ -1125,6 +1260,14 @@ def index():
         'label': '[COLOR blue][B]Reminders[/B][/COLOR]',
         'path': plugin.url_for('reminders'),
     },
+    {
+        'label': '[COLOR yello][B]Channels[/B][/COLOR]',
+        'path': plugin.url_for('channel_list'),
+    },    
+    {
+        'label': '[COLOR yello][B]Channels Remap[/B][/COLOR]',
+        'path': plugin.url_for('channel_remap'),
+    },    
     ]
     return items
 
@@ -1132,5 +1275,5 @@ if __name__ == '__main__':
     xml_channels()
     store_channels()
     plugin.run()
-    if index_page == False:
+    if big_list_view == True: #TODO for others
         plugin.set_view_mode(51)
