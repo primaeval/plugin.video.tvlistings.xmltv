@@ -6,6 +6,8 @@
 </category>
 <category label="Channels">
 <setting id="channel_context_menu" label="Channel Context Menu [COLOR yellow]Add/Remove/Rename[/COLOR]" type="bool" default="true" />
+<setting type="sep"/>
+<setting label="Clear channels" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
 </category>
 <category label="XMLTV Data">
 <setting label="XMLTV Type" type="enum" id="xmltv_type" default="File" values="File|Url" />

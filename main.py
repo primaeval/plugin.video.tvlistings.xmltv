@@ -51,6 +51,15 @@ def write_channel_file():
         f.write(write_str)
     f.close()
 
+
+@plugin.route('/clear_channels')
+def clear_channels():
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    channels.clear()
+    channels.sync()
+    write_channel_file()
+
+
 @plugin.route('/add_channel/<channel_name>/<path>/<icon>/<ask>')
 def add_channel(channel_name,path,icon,ask):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
