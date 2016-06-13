@@ -464,6 +464,13 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     items.extend(channel_items)
     return items
 
+@plugin.route('/activate_channel/<channel_name>')
+def activate_channel(channel_name):
+    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    if channel_name in channels:
+        link = channels[channel_name]
+        xbmc.executebuiltin('Container.Update("%s")' % link)
+
 
 @plugin.route('/channel/<channel_id>/<channel_name>')
 def channel(channel_id,channel_name):
@@ -476,6 +483,15 @@ def channel(channel_id,channel_name):
         item = {
         'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Default Player'),
         'path': channels[channel_name],
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': True,
+        }
+        items.append(item)
+        path = "xbmc.executebuiltin(Container.Update(%s))" % channels[channel_name]
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Activate Player'),
+        'path': plugin.url_for(activate_channel, channel_name=channel_name),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': True,
