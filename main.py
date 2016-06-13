@@ -447,7 +447,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     'icon': clock_icon,
     })
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
-    if channel_id in channels:
+    if channel_name in channels:
         items.append({
         'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Watch[/B][/COLOR]' % (title),
         'path':plugin.url_for('watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
