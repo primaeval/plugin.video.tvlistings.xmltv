@@ -272,9 +272,9 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def watch(channel_id,channel_name,title,season,episode,start,stop):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
-    if not channel_id in channels:
+    if not channel_name in channels:
         return
-    path = channels[channel_id]
+    path = channels[channel_name]
     t = datetime.fromtimestamp(float(start)) - datetime.now()
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(plugin://plugin.video.tvlistings.xmltv/play_channel/%s/%s/%s),%d,False)' %
