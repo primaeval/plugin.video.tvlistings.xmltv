@@ -50,7 +50,7 @@ def write_channel_file():
         write_str = "%s=%s\n" % (channel,channels[channel])
         f.write(write_str)
     f.close()
-    
+
 @plugin.route('/add_channel/<channel_name>/<path>/<icon>/<ask>')
 def add_channel(channel_name,path,icon,ask):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
@@ -63,23 +63,21 @@ def add_channel(channel_name,path,icon,ask):
         return
     channels[channel_name] = urllib.unquote(path)
     channels.sync()
-    
     write_channel_file()
+
 
 @plugin.route('/remove_channel/<channel_name>/<path>/<icon>')
 def remove_channel(channel_name,path,icon):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     channel_name = urllib.unquote(channel_name)
     channel_name = re.sub('\[.*?\]','',channel_name)
-    log2(channel_name)
     if not channel_name in channels:
         return
     del channels[channel_name]
     channels.sync()
-    
     write_channel_file()
 
-    
+
 @plugin.route('/channel_list')
 def channel_list():
     global big_list_view
@@ -92,9 +90,9 @@ def channel_list():
         item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': True}
         item['path'] = channels[channel]
         items.append(item)
-
     return items
-        
+
+
 @plugin.route('/channel_remap')
 def channel_remap():
     global big_list_view
@@ -116,9 +114,9 @@ def channel_remap():
         item['path'] = plugin.url_for('select_channel', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         items.append(item)
     c.close()
-
     return items
-    
+
+
 @plugin.route('/select_channel/<channel_id>/<channel_name>')
 def select_channel(channel_id,channel_name):
     global big_list_view
@@ -134,16 +132,16 @@ def select_channel(channel_id,channel_name):
         item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': False}
         item['path'] = plugin.url_for('choose_channel', channel_id=channel_name, channel=channel, path=urllib.quote(channels[channel],safe=''))
         items.append(item)
-
     return items
-    
+
+
 @plugin.route('/choose_channel/<channel_id>/<channel>/<path>')
 def choose_channel(channel_id,channel,path):
     remove_channel(channel_id,'','')
     remove_channel(channel,'','')
     add_channel(channel_id,path,'','false')
-    
-    
+
+
 @plugin.route('/play_channel/<channel_id>/<title>/<start>')
 def play_channel(channel_id,title,start):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
@@ -154,6 +152,7 @@ def play_channel(channel_id,title,start):
     plugin.set_setting('playing_title',title)
     plugin.set_setting('playing_start',start)
     xbmc.executebuiltin('PlayMedia(%s)' % path)
+
 
 @plugin.route('/stop_playing/<channel_id>/<title>/<start>')
 def stop_playing(channel_id,title,start):
@@ -166,6 +165,7 @@ def stop_playing(channel_id,title,start):
     plugin.set_setting('playing_start','')
     xbmc.executebuiltin('PlayerControl(Stop)')
 
+
 def get_conn():
     profilePath = xbmc.translatePath(plugin.addon.getAddonInfo('profile'))
     if not os.path.exists(profilePath):
@@ -176,6 +176,7 @@ def get_conn():
     conn.execute('PRAGMA foreign_keys = ON')
     conn.row_factory = sqlite3.Row
     return conn
+
 
 @plugin.route('/clear_reminders')
 def clear_reminders():
@@ -458,7 +459,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
 @plugin.route('/channel/<channel_id>/<channel_name>')
 def channel(channel_id,channel_name):
     items = []
-    
+
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     if channel_name in channels:
         addon = xbmcaddon.Addon()
@@ -471,7 +472,7 @@ def channel(channel_id,channel_name):
         'is_playable': True,
         }
         items.append(item)
-        
+
     addons = plugin.get_storage('addons')
 
     for addon in addons:
@@ -495,7 +496,7 @@ def channel(channel_id,channel_name):
             pass
 
 
-            
+
     addon = xbmcaddon.Addon('plugin.video.meta')
     meta_icon = addon.getAddonInfo('icon')
     meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
@@ -1264,17 +1265,17 @@ def index():
     {
         'label': '[COLOR yello][B]Channels[/B][/COLOR]',
         'path': plugin.url_for('channel_list'),
-    },    
+    },
     {
         'label': '[COLOR yello][B]Channels Remap[/B][/COLOR]',
         'path': plugin.url_for('channel_remap'),
-    },    
+    },
     ]
     return items
-    
+
 def context_menu():
     if plugin.get_setting('channel_context_menu') == 'true':
-        xbmcgui.Window(10000).setProperty('XMLTV_CONTEXTMENU_ENABLED', 'True')  
+        xbmcgui.Window(10000).setProperty('XMLTV_CONTEXTMENU_ENABLED', 'True')
     else:
         xbmcgui.Window(10000).clearProperty('XMLTV_CONTEXTMENU_ENABLED')
 
@@ -1283,5 +1284,5 @@ if __name__ == '__main__':
     xml_channels()
     store_channels()
     plugin.run()
-    if big_list_view == True: 
+    if big_list_view == True:
         plugin.set_view_mode(51)
