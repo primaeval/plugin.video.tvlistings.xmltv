@@ -55,9 +55,10 @@ def write_channel_file():
 def add_channel(channel_name,path,icon,ask):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     channel_name = urllib.unquote(channel_name)
+    channel_name = re.sub('\[.*?\]','',channel_name)
     if ask == 'true':
         dialog = xbmcgui.Dialog()
-        channel_name = dialog.input('Rename channel', channel_name, type=xbmcgui.INPUT_ALPHANUM)
+        channel_name = dialog.input('TV Listings (xmltv) - Name channel', channel_name, type=xbmcgui.INPUT_ALPHANUM)
     if not channel_name:
         return
     channels[channel_name] = urllib.unquote(path)
@@ -69,8 +70,7 @@ def add_channel(channel_name,path,icon,ask):
 def remove_channel(channel_name,path,icon):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     channel_name = urllib.unquote(channel_name)
-    #dialog = xbmcgui.Dialog()
-    #channel_name = dialog.input('Rename channel', channel_name, type=xbmcgui.INPUT_ALPHANUM)
+    channel_name = re.sub('\[.*?\]','',channel_name)
     if not channel_name in channels:
         return
     del channels[channel_name]
@@ -126,20 +126,20 @@ def select_channel(channel_id,channel_name):
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     items = []
     for channel in sorted(channels):
-        if channel == channel_id:
+        if channel == channel_name:
             label = "[COLOR red][B]%s[/B][/COLOR]" % (channel)
         else:
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel)
         img_url = ''
         item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': False}
-        item['path'] = plugin.url_for('choose_channel', channel_id=channel_id, channel=channel, path=urllib.quote(channels[channel],safe=''))
+        item['path'] = plugin.url_for('choose_channel', channel_id=channel_name, channel=channel, path=urllib.quote(channels[channel],safe=''))
         items.append(item)
 
     return items
     
 @plugin.route('/choose_channel/<channel_id>/<channel>/<path>')
 def choose_channel(channel_id,channel,path):
-    remove_channel(channel,'','')
+    remove_channel(channel_id,'','')
     add_channel(channel_id,path,'','false')
     
     
@@ -463,7 +463,7 @@ def channel(channel_id,channel_name):
         addon = xbmcaddon.Addon()
         icon = addon.getAddonInfo('icon')
         item = {
-        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Default'),
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Default Player'),
         'path': channels[channel_name],
         'thumbnail': icon,
         'icon': icon,
@@ -1275,5 +1275,5 @@ if __name__ == '__main__':
     xml_channels()
     store_channels()
     plugin.run()
-    if big_list_view == True: #TODO for others
+    if big_list_view == True: 
         plugin.set_view_mode(51)
