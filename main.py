@@ -506,9 +506,9 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     items.extend(channel_items)
     return items
 
-@plugin.route('/activate_channel/<channel_name>')
-def activate_channel(channel_name):
-    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+@plugin.route('/activate_channel/<addon_name>/<channel_name>')
+def activate_channel(addon_name,channel_name):
+    channels = plugin.get_storage(addon_name)
     if channel_name in channels:
         link = channels[channel_name]
         xbmc.executebuiltin('Container.Update("%s")' % link)
@@ -535,7 +535,7 @@ def channel(channel_id,channel_name):
         path = "xbmc.executebuiltin(Container.Update(%s))" % channels[channel_name]
         item = {
         'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Activate Player'),
-        'path': plugin.url_for(activate_channel, channel_name=channel_name),
+        'path': plugin.url_for(activate_channel, addon_name='plugin.video.tvlistings.xmltv', channel_name=channel_name),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': True,
@@ -619,15 +619,61 @@ def streams(addon_name):
         icon = ''
     items = []
     streams = plugin.get_storage(addon_name)
-    for stream in sorted(streams):
+    for stream_name in sorted(streams):
         item = {
-        'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream),
-        'path': streams[stream],
+        'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
+        'path': plugin.url_for(stream_play, addon_name=addon_name, stream_name=stream_name),
         'thumbnail': icon,
         'icon': icon,
-        'is_playable': True,
+        'is_playable': False,
         }
         items.append(item)
+    return items
+
+@plugin.route('/stream_play/<addon_name>/<stream_name>')
+def stream_play(addon_name,stream_name):
+    global big_list_view
+    big_list_view = True
+    addon = xbmcaddon.Addon(addon_name)
+    if addon:
+        icon = addon.getAddonInfo('icon')
+    else:
+        icon = ''
+    items = []
+    streams = plugin.get_storage(addon_name)
+    stream = streams[stream_name]
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Default Player'),
+    'path': stream,
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': True,
+    }
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Activate Player'),
+    'path': plugin.url_for(activate_channel, addon_name=addon_name, channel_name=stream_name),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': True,
+    }
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]' % (stream_name, 'Add Stream'),
+    'path': plugin.url_for(add_channel, channel_name=stream_name, path=urllib.quote( stream , safe=''), icon='DefaultIcon.png', ask='true'),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': True,
+    }
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]' % (stream_name, 'Remove Stream'),
+    'path': plugin.url_for(remove_channel, channel_name=stream_name, path=urllib.quote( stream , safe=''), icon='DefaultIcon.png'),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': True,
+    }
+    items.append(item)
     return items
 
 
