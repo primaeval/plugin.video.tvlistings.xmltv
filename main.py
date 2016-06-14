@@ -91,14 +91,23 @@ def remove_channel(channel_name,path,icon):
 def channel_list():
     global big_list_view
     big_list_view = True
+    conn = get_conn()
+    c = conn.cursor()
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    c.execute('SELECT * FROM channels')
     items = []
-    for channel in sorted(channels):
-        label = "%s" % (channel)
-        img_url = ''
-        item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': True}
-        item['path'] = channels[channel]
+    for row in c:
+        channel_id = row['id']
+        channel_name = row['name']
+        img_url = row['icon']
+        if channel_name in channels:
+            label = "[COLOR red][B]%s[/B][/COLOR]" % (channel_name)
+        else:
+            label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
+        item = {'label':label,'icon':img_url,'thumbnail':img_url}
+        item['path'] = plugin.url_for('channel', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         items.append(item)
+    c.close()
     return items
 
 
@@ -372,7 +381,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             sick_icon =  addon.getAddonInfo('icon')
             if addon:
                 items.append({
-                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title),
+                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]SickRage[/B][/COLOR]' % (title),
                 'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                 'thumbnail': sick_icon,
                 'icon': sick_icon,
@@ -397,7 +406,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                 couch_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]CouchPotato[/B][/COLOR]' % (title),
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]CouchPotato[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.couchpotato_manager/movies/add/?title=%s" % (title),
                     'thumbnail': couch_icon,
                     'icon': couch_icon,
@@ -426,7 +435,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                 sick_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]SickRage[/B][/COLOR]' % (title),
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]SickRage[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                     'thumbnail': sick_icon,
                     'icon': sick_icon,
@@ -474,12 +483,14 @@ def activate_channel(channel_name):
 
 @plugin.route('/channel/<channel_id>/<channel_name>')
 def channel(channel_id,channel_name):
-    items = []
+    global big_list_view
+    big_list_view = True
 
+    items = []
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    addon = xbmcaddon.Addon()
+    icon = addon.getAddonInfo('icon')
     if channel_name in channels:
-        addon = xbmcaddon.Addon()
-        icon = addon.getAddonInfo('icon')
         item = {
         'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Default Player'),
         'path': channels[channel_name],
@@ -497,6 +508,13 @@ def channel(channel_id,channel_name):
         'is_playable': True,
         }
         items.append(item)
+    if channel_name in channels:
+        label = "[COLOR red][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Remap Channel')
+    else:
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Remap Channel')
+    item = {'label':label,'icon':icon,'thumbnail':icon}
+    item['path'] = plugin.url_for('select_channel', channel_id=channel_id, channel_name=channel_name)
+    items.append(item)
 
     addons = plugin.get_storage('addons')
 
@@ -520,13 +538,11 @@ def channel(channel_id,channel_name):
         except:
             pass
 
-
-
     addon = xbmcaddon.Addon('plugin.video.meta')
     meta_icon = addon.getAddonInfo('icon')
     meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
     items.append({
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
     'path': meta_url,
     'thumbnail': meta_icon,
     'icon': meta_icon,
@@ -1290,10 +1306,6 @@ def index():
     {
         'label': '[COLOR yello][B]Channels[/B][/COLOR]',
         'path': plugin.url_for('channel_list'),
-    },
-    {
-        'label': '[COLOR yello][B]Channels Remap[/B][/COLOR]',
-        'path': plugin.url_for('channel_remap'),
     },
     ]
     return items
