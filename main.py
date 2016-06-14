@@ -12,6 +12,7 @@ import xbmcplugin
 import xml.etree.ElementTree as ET
 import sqlite3
 import os
+import shutil
 
 plugin = Plugin()
 big_list_view = False
@@ -1274,6 +1275,18 @@ def search_dialog():
     if name:
         return search(name)
 
+
+@plugin.route('/nuke')
+def nuke():
+    TARGETFOLDER = xbmc.translatePath(
+        'special://userdata/addon_data/plugin.video.tvlistings.xmltv'
+        )
+    dialog = xbmcgui.Dialog()
+    ok = dialog.ok('TV Listings (xmltv)', '[COLOR red][B]Delete Everything in addon_data Folder?![/B][/COLOR]')
+    if not ok:
+        return
+    if os.path.exists( TARGETFOLDER ):
+            shutil.rmtree( TARGETFOLDER , ignore_errors=True)
 
 
 @plugin.route('/')

@@ -39,4 +39,7 @@
 <setting type="sep"/>
 <setting label="Clear reminders" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_reminders)"/>
 </category>
+<category label="Maintenance">
+<setting label="[COLOR red]Delete Everything![/COLOR]"  type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/nuke)"/>
+</category>
 </settings>
