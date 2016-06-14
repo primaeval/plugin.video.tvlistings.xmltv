@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 import sqlite3
 import os
 import shutil
+from rpc import RPC
 
 plugin = Plugin()
 big_list_view = False
@@ -50,6 +51,14 @@ def write_channel_file():
     for channel in sorted(channels):
         write_str = "%s=%s\n" % (channel,channels[channel])
         f.write(write_str)
+    addons = plugin.get_storage('addons')
+    for addon in addons:
+        write_str = "[%s]\n" % addon
+        f.write(write_str.encode("utf8"))
+        channels = plugin.get_storage(addon)
+        for channel in sorted(channels):
+            write_str = "%s=%s\n" % (channel.decode("utf8"),channels[channel].decode("utf8"))
+            f.write(write_str.encode("utf8"))
     f.close()
 
 
@@ -1409,6 +1418,92 @@ def nuke():
     if os.path.exists( TARGETFOLDER ):
             shutil.rmtree( TARGETFOLDER , ignore_errors=True)
 
+def urlencode_path(path):
+    from urlparse import urlparse, parse_qs, urlunparse
+    path = path.encode("utf8")
+    o = urlparse(path)
+    query = parse_qs(o.query)
+    path = urlunparse([o.scheme, o.netloc, o.path, o.params, urllib.urlencode(query, True), o.fragment])
+    return path
+
+@plugin.route('/browse_addons')
+def browse_addons():
+    try:
+        response = RPC.addons.get_addons(type="xbmc.addon.video")
+    except:
+         return
+
+    addons = response["addons"]
+    ids = [a["addonid"] for a in addons]
+
+    items = []
+    for id in ids:
+        path = "plugin://%s" % id
+        path = urlencode_path(path)
+        addon = xbmcaddon.Addon(id)
+        name = addon.getAddonInfo('name')
+        item = {'label':name,'path':plugin.url_for('browse_path', addon=id, path=path)}
+        items.append(item)
+    return items
+
+
+@plugin.route('/browse_path/<addon>/<path>')
+def browse_path(addon,path):
+    try:
+        response = RPC.files.get_directory(media="files", directory=path)
+    except:
+         return
+
+    files = response["files"]
+    dirs = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "directory"])
+    links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
+
+    items = []
+    item = {'label':'[COLOR green][B]Add Folder[/B][/COLOR]','path':plugin.url_for('add_ini', addon=addon, path=path),'is_playable':False}
+    items.append(item)
+
+    for dir in sorted(dirs):
+        path = dirs[dir]
+        item = {'label':dir,'path':plugin.url_for('browse_path', addon=addon, path=path),'is_playable':False}
+        items.append(item)
+    for link in sorted(links):
+        path = links[link]
+        item = {'label':link,'path':plugin.url_for('activate_play', label=link, path=path),'is_playable':False}
+        items.append(item)
+
+    return items
+
+@plugin.route('/add_ini/<addon>/<path>')
+def add_ini(addon,path):
+    try:
+        response = RPC.files.get_directory(media="files", directory=path)
+    except:
+         return
+
+    files = response["files"]
+    links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
+
+    all_addons = plugin.get_storage('addons')
+    all_addons[addon] = addon
+    to_addon = plugin.get_storage(addon)
+    for link in sorted(links):
+        to_addon[link] = links[link]
+    to_addon.sync()
+    write_channel_file()
+
+@plugin.route('/activate_play/<label>/<path>')
+def activate_play(label,path):
+    items = []
+    item = {'label':"%s - Play" % label,'path':path,'is_playable':True}
+    items.append(item)
+    item = {'label':"%s - Activate" % label,'path':plugin.url_for('activate_link', link=path),'is_playable':True}
+    items.append(item)
+    return items
+
+@plugin.route('/activate_link/<link>')
+def activate_link(link):
+    xbmc.executebuiltin('Container.Update("%s")' % link)
+
 
 @plugin.route('/')
 def index():
@@ -1444,7 +1539,12 @@ def index():
     {
         'label': '[COLOR grey][B]Streams[/B][/COLOR]',
         'path': plugin.url_for('addon_streams'),
-    },    ]
+    },
+    {
+        'label': '[COLOR grey][B]Addons[/B][/COLOR]',
+        'path': plugin.url_for('browse_addons'),
+    },
+    ]
     return items
 
 def context_menu():
