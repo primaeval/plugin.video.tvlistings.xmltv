@@ -14,6 +14,7 @@ import sqlite3
 import os
 import shutil
 from rpc import RPC
+from types import *
 
 plugin = Plugin()
 big_list_view = False
@@ -44,7 +45,7 @@ def get_tvdb_id(name):
 def write_channel_file():
     xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
     file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/plugin.video.tvlistings.xmltv.ini'
-    f = xbmcvfs.File(file_name,'w')
+    f = xbmcvfs.File(file_name,'wb')
     write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel add.\n\n[plugin.video.tvlistings.xmltv]\n"
     f.write(write_str.encode("utf8"))
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
@@ -57,7 +58,11 @@ def write_channel_file():
         f.write(write_str.encode("utf8"))
         channels = plugin.get_storage(addon)
         for channel in sorted(channels):
-            write_str = "%s=%s\n" % (channel.decode("utf8"),channels[channel].decode("utf8"))
+            if type(channel) is StringType:
+                name = channel.decode("utf8")
+            else:
+                name = channel
+            write_str = "%s=%s\n" % (name,channels[channel])
             f.write(write_str.encode("utf8"))
     f.close()
 
@@ -631,7 +636,7 @@ def streams(addon_name):
     for stream_name in sorted(streams):
         item = {
         'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
-        'path': plugin.url_for(stream_play, addon_name=addon_name, stream_name=stream_name),
+        'path': plugin.url_for(stream_play, addon_name=addon_name, stream_name=stream_name.encode("utf8")),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
@@ -650,7 +655,7 @@ def stream_play(addon_name,stream_name):
         icon = ''
     items = []
     streams = plugin.get_storage(addon_name)
-    stream = streams[stream_name]
+    stream = streams[stream_name.decode("utf8")]
     item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Default Player'),
     'path': stream,
@@ -1444,7 +1449,9 @@ def browse_addons():
         name = addon.getAddonInfo('name')
         item = {'label':name,'path':plugin.url_for('browse_path', addon=id, path=path)}
         items.append(item)
-    return items
+
+    sorted_items = sorted(items, key=lambda item: item['label'])
+    return sorted_items
 
 
 @plugin.route('/browse_path/<addon>/<path>')
@@ -1468,7 +1475,7 @@ def browse_path(addon,path):
         items.append(item)
     for link in sorted(links):
         path = links[link]
-        item = {'label':link,'path':plugin.url_for('activate_play', label=link, path=path),'is_playable':False}
+        item = {'label':link.encode("utf8"),'path':plugin.url_for('activate_play', label=link.encode("utf8"), path=path),'is_playable':False}
         items.append(item)
 
     return items
