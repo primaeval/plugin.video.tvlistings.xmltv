@@ -88,6 +88,38 @@ def remove_channel(channel_name,path,icon):
     write_channel_file()
 
 
+def channel_templates():
+    xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
+    if not xbmcvfs.exists('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini'):
+        f = xbmcvfs.File('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini','w')
+        f.close()
+
+    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/name_template.ini'
+    fn = xbmcvfs.File(file_name,'w')
+    write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel reload.\n\n[name_template]\n"
+    fn.write(write_str.encode("utf8"))
+
+    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/id_template.ini'
+    fi = xbmcvfs.File(file_name,'w')
+    write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel reload.\n\n[id_template]\n"
+    fi.write(write_str.encode("utf8"))
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM channels')
+
+    for row in c:
+        channel_id = row['id']
+        channel_name = row['name']
+        write_str = "%s=\n" % (channel_name)
+        fn.write(write_str.encode("utf8"))
+        write_str = "%s=\n" % (channel_id)
+        fi.write(write_str.encode("utf8"))
+
+
+    c.close()
+
+
 @plugin.route('/channel_list')
 def channel_list():
     global big_list_view
@@ -551,6 +583,54 @@ def channel(channel_id,channel_name):
      })
     return items
 
+
+@plugin.route('/addon_streams')
+def addon_streams():
+    global big_list_view
+    big_list_view = True
+    items = []
+    addons = plugin.get_storage('addons')
+    for addon_name in sorted(addons):
+        try:
+            addon = xbmcaddon.Addon(addon_name)
+            if addon:
+                icon = addon.getAddonInfo('icon')
+                item = {
+                'label': '[COLOR green][B]%s[/B][/COLOR]' % (addon.getAddonInfo('name')),
+                'path': plugin.url_for(streams, addon_name=addon_name),
+                'thumbnail': icon,
+                'icon': icon,
+                'is_playable': False,
+                }
+                items.append(item)
+        except:
+            pass
+    return items
+
+
+@plugin.route('/streams/<addon_name>')
+def streams(addon_name):
+    global big_list_view
+    big_list_view = True
+    addon = xbmcaddon.Addon(addon_name)
+    if addon:
+        icon = addon.getAddonInfo('icon')
+    else:
+        icon = ''
+    items = []
+    streams = plugin.get_storage(addon_name)
+    for stream in sorted(streams):
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream),
+        'path': streams[stream],
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': True,
+        }
+        items.append(item)
+    return items
+
+
 def utc2local (utc):
     epoch = time.mktime(utc.timetuple())
     offset = datetime.fromtimestamp (epoch) - datetime.utcfromtimestamp (epoch)
@@ -746,11 +826,6 @@ def xml_channels():
         f = xbmcvfs.File('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini','w')
         f.close()
 
-    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/template.ini'
-    f = xbmcvfs.File(file_name,'w')
-    write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel reload.\n\n[plugin.video.all]\n"
-    f.write(write_str.encode("utf8"))
-
     conn = get_conn()
     conn.execute('PRAGMA foreign_keys = ON')
     conn.row_factory = sqlite3.Row
@@ -813,8 +888,6 @@ def xml_channels():
                         if path:
                             icon = "%s/%s.png" % (path,display_name)
 
-                write_str = "%s=\n" % (id)
-                f.write(write_str.encode("utf8"))
                 conn.execute("INSERT OR IGNORE INTO channels(id, name, icon) VALUES(?, ?, ?)", [id, display_name, icon])
                 if (now - last).seconds > 0.5:
                     dialog.notification("TV Listings (xmltv)","loading channels: "+display_name)
@@ -877,6 +950,8 @@ def xml_channels():
     conn.commit()
     conn.close()
     plugin.set_setting('xmltv_updating', 'false')
+    channel_templates()
+
 
 @plugin.route('/channels')
 def channels():
@@ -1317,10 +1392,13 @@ def index():
         'path': plugin.url_for('reminders'),
     },
     {
-        'label': '[COLOR yello][B]Channels[/B][/COLOR]',
+        'label': '[COLOR yellow][B]Channels[/B][/COLOR]',
         'path': plugin.url_for('channel_list'),
     },
-    ]
+    {
+        'label': '[COLOR grey][B]Streams[/B][/COLOR]',
+        'path': plugin.url_for('addon_streams'),
+    },    ]
     return items
 
 def context_menu():
