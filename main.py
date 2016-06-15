@@ -1468,7 +1468,7 @@ def browse_path(addon,path):
     items = []
     item = {'label':'[COLOR yellow][B]Add Folder to Default Channels[/B][/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=False),'is_playable':False}
     items.append(item)
-    item = {'label':'[COLOR yellow][B]Add Folder to Default Channels with {Addon Name}[/B][/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=True),'is_playable':False}
+    item = {'label':'[COLOR yellow][B]Add Folder to Default Channels with [/B][/COLOR][COLOR green]Addon Name[/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=True),'is_playable':False}
     items.append(item)
     item = {'label':'[COLOR green][B]Add Folder to Addon Streams[/B][/COLOR]','path':plugin.url_for('add_ini', addon=addon, path=path),'is_playable':False}
     items.append(item)
@@ -1498,7 +1498,7 @@ def add_defaults(addon,path,addon_name):
     to_addon = plugin.get_storage('plugin.video.tvlistings.xmltv')
     for link in sorted(links):
         if addon_name == "True":
-            title = "%s { %s }" % (link,name)
+            title = "%s [COLOR green]%s[/COLOR]" % (link,name)
         else:
             title = link
         to_addon[title] = links[link]
