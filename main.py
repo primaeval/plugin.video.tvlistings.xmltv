@@ -168,29 +168,162 @@ def channel_remap():
     big_list_view = True
     conn = get_conn()
     c = conn.cursor()
-    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    #channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     c.execute('SELECT * FROM channels')
     items = []
     for row in c:
         channel_id = row['id']
         channel_name = row['name']
         img_url = row['icon']
-        if channel_name in channels:
+        path = row['path']
+        #if channel_name in channels:
+        if path:
             label = "[COLOR red][B]%s[/B][/COLOR]" % (channel_name)
         else:
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('select_channel', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+        item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id.encode("utf8"))
         items.append(item)
     c.close()
     return items
 
+    
+@plugin.route('/channel_remap_addons/<channel_id>')
+def channel_remap_addons(channel_id):
+    global big_list_view
+    big_list_view = True
+    items = []
+    #addons = plugin.get_storage('addons')
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT DISTINCT addon FROM addons')
+    addons = [row["addon"] for row in c]
+    #channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+    
+    icon = ''
+    item = {
+    'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
+    'path': plugin.url_for(channel_remap_all, channel_id=channel_id),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    items.append(item)
+    
+    
+    for addon_id in sorted(addons):
+        try:
+            addon = xbmcaddon.Addon(addon_id)
+            if addon:
+                icon = addon.getAddonInfo('icon')
+                item = {
+                'label': '[COLOR green][B]%s[/B][/COLOR]' % (addon.getAddonInfo('name')),
+                'path': plugin.url_for(channel_remap_streams, addon_id=addon_id,channel_id=channel_id),
+                'thumbnail': icon,
+                'icon': icon,
+                'is_playable': False,
+                }
+                items.append(item)
+        except:
+            pass
+    return items
 
+    
+@plugin.route('/channel_remap_all/<channel_id>')
+def channel_remap_all(channel_id):
+    global big_list_view
+    big_list_view = True
+
+    items = []
+    #streams = plugin.get_storage(addon_id)
+    conn = get_conn()
+    c = conn.cursor()
+    #c.execute("SELECT * FROM addons WHERE UPPER(name) LIKE UPPER('%?%') ", [channel_id])
+    c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_id.decode("utf8")+'%'])
+    #streams = dict([row["name"],[row["path"], row["icon"]]] for row in c)
+    #streams = dict((row['name'], (row['path'], row['icon'])) for row in c)
+    for row in c:
+        addon_id = row["addon"]
+        stream_name = row["name"]
+        path = row["path"]
+        icon = row["icon"]
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_id),
+        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, stream_name=stream_name.encode("utf8")),
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': False,
+        }
+        items.append(item)
+    
+    '''
+    for stream_name in sorted(streams):
+        (path,icon) = streams[stream_name]
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
+        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, stream_name=stream_name.encode("utf8")),
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': False,
+        }
+        items.append(item)
+    '''
+    return items
+    
+
+@plugin.route('/channel_remap_streams/<addon_id>/<channel_id>')
+def channel_remap_streams(addon_id,channel_id):
+    global big_list_view
+    big_list_view = True
+    addon = xbmcaddon.Addon(addon_id)
+    if addon:
+        icon = addon.getAddonInfo('icon')
+    else:
+        icon = ''
+    items = []
+    #streams = plugin.get_storage(addon_id)
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM addons WHERE addon=?', [addon_id])
+    streams = dict([row["name"],[row["path"], row["icon"]]] for row in c)
+    #streams = dict((row['name'], (row['path'], row['icon'])) for row in c)
+    
+    for stream_name in sorted(streams):
+        (path,icon) = streams[stream_name]
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
+        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, stream_name=stream_name.encode("utf8")),
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': False,
+        }
+        items.append(item)
+    return items
+    
+@plugin.route('/channel_remap_stream/<addon_id>/<channel_id>/<stream_name>')
+def channel_remap_stream(addon_id,channel_id,stream_name):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT path, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name])
+    row = c.fetchone()
+    path = row["path"]
+    icon = row["icon"]
+    if icon:
+        c.execute('UPDATE channels SET path=?, icon=? WHERE id=?', [path,icon,channel_id])
+    else:
+        c.execute('UPDATE channels SET path=? WHERE id=?', [path,channel_id])
+    conn.commit()
+    #c.execute('SELECT * FROM addons WHERE channel=? AND addon=?', [channel_id, addon_id])
+    #row = c.fetchone()
+    #conn.execute("INSERT OR IGNORE INTO channels(id, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [id, display_name, '', '', icon])
+
+                
 @plugin.route('/select_channel/<channel_id>/<channel_name>')
 def select_channel(channel_id,channel_name):
     global big_list_view
     big_list_view = True
-    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    #channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     items = []
     for channel in sorted(channels):
         if channel == channel_name:
