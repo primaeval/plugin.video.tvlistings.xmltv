@@ -51,7 +51,7 @@ def write_channel_file():
     channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     for channel in sorted(channels):
         write_str = "%s=%s\n" % (channel,channels[channel])
-        f.write(write_str)
+        f.write(write_str.encode("utf8"))
     addons = plugin.get_storage('addons')
     for addon in addons:
         write_str = "[%s]\n" % addon
@@ -1466,7 +1466,9 @@ def browse_path(addon,path):
     links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
 
     items = []
-    item = {'label':'[COLOR green][B]Add Folder[/B][/COLOR]','path':plugin.url_for('add_ini', addon=addon, path=path),'is_playable':False}
+    item = {'label':'[COLOR yellow][B]Add Folder to Default Channels[/B][/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path),'is_playable':False}
+    items.append(item)
+    item = {'label':'[COLOR green][B]Add Folder to Addon Streams[/B][/COLOR]','path':plugin.url_for('add_ini', addon=addon, path=path),'is_playable':False}
     items.append(item)
 
     for dir in sorted(dirs):
@@ -1479,6 +1481,23 @@ def browse_path(addon,path):
         items.append(item)
 
     return items
+
+@plugin.route('/add_defaults/<addon>/<path>')
+def add_defaults(addon,path):
+    try:
+        response = RPC.files.get_directory(media="files", directory=path)
+    except:
+         return
+
+    files = response["files"]
+    links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
+
+    to_addon = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    for link in sorted(links):
+        to_addon[link] = links[link]
+    to_addon.sync()
+    write_channel_file()
+
 
 @plugin.route('/add_ini/<addon>/<path>')
 def add_ini(addon,path):
@@ -1540,15 +1559,19 @@ def index():
         'path': plugin.url_for('reminders'),
     },
     {
-        'label': '[COLOR yellow][B]Channels[/B][/COLOR]',
+        'label': '[COLOR yellow][B]Default Channels[/B][/COLOR]',
         'path': plugin.url_for('channel_list'),
     },
     {
-        'label': '[COLOR grey][B]Streams[/B][/COLOR]',
+        'label': '[COLOR red][B]Remap Channels[/B][/COLOR]',
+        'path': plugin.url_for('channel_remap'),
+    },
+    {
+        'label': '[COLOR green][B]Addon Streams[/B][/COLOR]',
         'path': plugin.url_for('addon_streams'),
     },
     {
-        'label': '[COLOR grey][B]Addons[/B][/COLOR]',
+        'label': '[COLOR grey][B]Addon Browser[/B][/COLOR]',
         'path': plugin.url_for('browse_addons'),
     },
     ]
