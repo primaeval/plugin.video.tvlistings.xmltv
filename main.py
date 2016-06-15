@@ -144,19 +144,23 @@ def channel_list():
     big_list_view = True
     conn = get_conn()
     c = conn.cursor()
-    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    #channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
     c.execute('SELECT * FROM channels')
     items = []
     for row in c:
         channel_id = row['id']
         channel_name = row['name']
         img_url = row['icon']
-        if channel_name in channels:
+        path = row['path']
+        if path:
             label = "[COLOR red][B]%s[/B][/COLOR]" % (channel_name)
         else:
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('channel', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+        if path:
+            item['path'] = plugin.url_for('activate_play', label=channel_name, path=path)
+        else:
+            item['path'] = plugin.url_for('channel_list')
         items.append(item)
     c.close()
     return items
@@ -182,14 +186,14 @@ def channel_remap():
         else:
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id.encode("utf8"))
+        item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         items.append(item)
     c.close()
     return items
 
     
-@plugin.route('/channel_remap_addons/<channel_id>')
-def channel_remap_addons(channel_id):
+@plugin.route('/channel_remap_addons/<channel_id>/<channel_name>')
+def channel_remap_addons(channel_id,channel_name):
     global big_list_view
     big_list_view = True
     items = []
@@ -204,7 +208,7 @@ def channel_remap_addons(channel_id):
     icon = ''
     item = {
     'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
-    'path': plugin.url_for(channel_remap_all, channel_id=channel_id),
+    'path': plugin.url_for(channel_remap_all, channel_id=channel_id,channel_name=channel_name),
     'thumbnail': icon,
     'icon': icon,
     'is_playable': False,
@@ -219,7 +223,7 @@ def channel_remap_addons(channel_id):
                 icon = addon.getAddonInfo('icon')
                 item = {
                 'label': '[COLOR green][B]%s[/B][/COLOR]' % (addon.getAddonInfo('name')),
-                'path': plugin.url_for(channel_remap_streams, addon_id=addon_id,channel_id=channel_id),
+                'path': plugin.url_for(channel_remap_streams, addon_id=addon_id,channel_id=channel_id,channel_name=channel_name),
                 'thumbnail': icon,
                 'icon': icon,
                 'is_playable': False,
@@ -230,8 +234,8 @@ def channel_remap_addons(channel_id):
     return items
 
     
-@plugin.route('/channel_remap_all/<channel_id>')
-def channel_remap_all(channel_id):
+@plugin.route('/channel_remap_all/<channel_id>/<channel_name>')
+def channel_remap_all(channel_id,channel_name):
     global big_list_view
     big_list_view = True
 
@@ -240,7 +244,7 @@ def channel_remap_all(channel_id):
     conn = get_conn()
     c = conn.cursor()
     #c.execute("SELECT * FROM addons WHERE UPPER(name) LIKE UPPER('%?%') ", [channel_id])
-    c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_id.decode("utf8")+'%'])
+    c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
     #streams = dict([row["name"],[row["path"], row["icon"]]] for row in c)
     #streams = dict((row['name'], (row['path'], row['icon'])) for row in c)
     for row in c:
@@ -248,9 +252,12 @@ def channel_remap_all(channel_id):
         stream_name = row["name"]
         path = row["path"]
         icon = row["icon"]
+        addon = xbmcaddon.Addon(addon_id)
+        icon = addon.getAddonInfo('icon')
+        addon_name = addon.getAddonInfo('name')
         item = {
-        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_id),
-        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, stream_name=stream_name.encode("utf8")),
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name),
+        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, channel_name=channel_name, stream_name=stream_name.encode("utf8")),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
@@ -272,8 +279,8 @@ def channel_remap_all(channel_id):
     return items
     
 
-@plugin.route('/channel_remap_streams/<addon_id>/<channel_id>')
-def channel_remap_streams(addon_id,channel_id):
+@plugin.route('/channel_remap_streams/<addon_id>/<channel_id>/<channel_name>')
+def channel_remap_streams(addon_id,channel_id,channel_name):
     global big_list_view
     big_list_view = True
     addon = xbmcaddon.Addon(addon_id)
@@ -293,7 +300,7 @@ def channel_remap_streams(addon_id,channel_id):
         (path,icon) = streams[stream_name]
         item = {
         'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
-        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, stream_name=stream_name.encode("utf8")),
+        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, channel_name=channel_name, stream_name=stream_name.encode("utf8")),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
@@ -301,8 +308,8 @@ def channel_remap_streams(addon_id,channel_id):
         items.append(item)
     return items
     
-@plugin.route('/channel_remap_stream/<addon_id>/<channel_id>/<stream_name>')
-def channel_remap_stream(addon_id,channel_id,stream_name):
+@plugin.route('/channel_remap_stream/<addon_id>/<channel_id>/<channel_name>/<stream_name>')
+def channel_remap_stream(addon_id,channel_id,channel_name,stream_name):
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT path, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name])
@@ -458,16 +465,16 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     c = conn.cursor()
     c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     row = c.fetchone()
-    c.execute("INSERT OR IGNORE INTO remind(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
+    c.execute("INSERT OR REPLACE INTO remind(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
 
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def watch(channel_id,channel_name,title,season,episode,start,stop):
-    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
-    if not channel_name in channels:
-        return
-    path = channels[channel_name]
+    #channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    #if not channel_name in channels:
+    #    return
+    #path = channels[channel_name]
     t = datetime.fromtimestamp(float(start)) - datetime.now()
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(plugin://plugin.video.tvlistings.xmltv/play_channel/%s/%s/%s),%d,False)' %
@@ -484,7 +491,7 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     c = conn.cursor()
     c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     row = c.fetchone()
-    c.execute("INSERT OR IGNORE INTO watch(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
+    c.execute("INSERT OR REPLACE INTO watch(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
 
@@ -639,8 +646,13 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     'thumbnail': clock_icon,
     'icon': clock_icon,
     })
-    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
-    if channel_name in channels:
+    #channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT path FROM channels WHERE id=?', [channel_id])
+    row = c.fetchone()
+    path = row["path"]
+    if path:
         items.append({
         'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Watch[/B][/COLOR]' % (title),
         'path':plugin.url_for('watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
@@ -671,8 +683,8 @@ def activate_channel(addon_id,channel_name):
     xbmc.executebuiltin('Container.Update("%s")' % link)
 
 
-@plugin.route('/channel/<channel_id>/<channel_name>')
-def channel(channel_id,channel_name):
+@plugin.route('/channel1/<channel_id>/<channel_name>')
+def channel1(channel_id,channel_name):
     global big_list_view
     big_list_view = True
 
@@ -740,6 +752,95 @@ def channel(channel_id,channel_name):
      })
     return items
 
+    
+@plugin.route('/channel/<channel_id>/<channel_name>')
+def channel(channel_id,channel_name):
+    global big_list_view
+    big_list_view = True
+
+    items = []
+    #channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    addon = xbmcaddon.Addon()
+    icon = addon.getAddonInfo('icon')
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM channels WHERE id=?', [channel_id])
+    row = c.fetchone()
+    path = row["path"]
+    icon = row["icon"]
+    
+    if path:
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Default Player'),'path':path,'thumbnail':icon,'is_playable':True}
+        items.append(item)
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Alternative Player'),'path':path,'thumbnail':icon,'is_playable':False}
+        items.append(item)
+    
+    
+    
+    '''
+    if channel_name in channels:
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Default Player'),
+        'path': channels[channel_name],
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': True,
+        }
+        items.append(item)
+        path = "xbmc.executebuiltin(Container.Update(%s))" % channels[channel_name]
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),'Activate Player'),
+        'path': plugin.url_for(activate_channel, addon_name='plugin.video.tvlistings.xmltv', channel_name=channel_name),
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': True,
+        }
+        items.append(item)
+    '''
+    '''
+    if channel_name in channels:
+        label = "[COLOR red][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Remap Channel')
+    else:
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Remap Channel')
+    item = {'label':label,'icon':icon,'thumbnail':icon}
+    item['path'] = plugin.url_for('select_channel', channel_id=channel_id, channel_name=channel_name)
+    items.append(item)
+    '''
+    #addons = plugin.get_storage('addons')
+    '''
+    for addon in addons:
+        channels = plugin.get_storage(addon)
+        if not channel_id in channels:
+            continue
+        path = channels[channel_id]
+        try:
+            addon = xbmcaddon.Addon(addon)
+            if addon:
+                icon = addon.getAddonInfo('icon')
+                item = {
+                'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (re.sub('_',' ',channel_name),addon.getAddonInfo('name')),
+                'path': path,
+                'thumbnail': icon,
+                'icon': icon,
+                'is_playable': True,
+                }
+                items.append(item)
+        except:
+            pass
+    '''
+    addon = xbmcaddon.Addon('plugin.video.meta')
+    meta_icon = addon.getAddonInfo('icon')
+    meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
+    items.append({
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
+    'path': meta_url,
+    'thumbnail': meta_icon,
+    'icon': meta_icon,
+    'is_playable': False,
+     })
+    return items
+    
 
 @plugin.route('/addon_streams')
 def addon_streams():
