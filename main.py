@@ -233,6 +233,57 @@ def channel_remap_addons(channel_id,channel_name):
             pass
     return items
 
+
+@plugin.route('/search_addons')
+def search_addons():
+    global big_list_view
+    big_list_view = True
+    
+    dialog = xbmcgui.Dialog()
+    channel_name = dialog.input('Search for channel?', type=xbmcgui.INPUT_ALPHANUM)
+    if not channel_name:
+        return
+
+    items = []
+    #streams = plugin.get_storage(addon_id)
+    conn = get_conn()
+    c = conn.cursor()
+    #c.execute("SELECT * FROM addons WHERE UPPER(name) LIKE UPPER('%?%') ", [channel_id])
+    c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
+    #streams = dict([row["name"],[row["path"], row["icon"]]] for row in c)
+    #streams = dict((row['name'], (row['path'], row['icon'])) for row in c)
+    for row in c:
+        addon_id = row["addon"]
+        stream_name = row["name"]
+        path = row["path"]
+        icon = row["icon"]
+        addon = xbmcaddon.Addon(addon_id)
+        icon = addon.getAddonInfo('icon')
+        addon_name = addon.getAddonInfo('name')
+        label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+        item = {
+        'label': label,
+        'path': plugin.url_for('activate_play', label=label.encode("utf8"), path=path),
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': False,
+        }
+        items.append(item)
+    
+    '''
+    for stream_name in sorted(streams):
+        (path,icon) = streams[stream_name]
+        item = {
+        'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
+        'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, stream_name=stream_name.encode("utf8")),
+        'thumbnail': icon,
+        'icon': icon,
+        'is_playable': False,
+        }
+        items.append(item)
+    '''
+    return items
+    
     
 @plugin.route('/channel_remap_all/<channel_id>/<channel_name>')
 def channel_remap_all(channel_id,channel_name):
@@ -854,7 +905,18 @@ def addon_streams():
     c.execute('SELECT DISTINCT addon FROM addons')
     addons = [row["addon"] for row in c]
     #channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+
     
+    icon = ''
+    item = {
+    'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
+    'path': plugin.url_for(search_addons),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    
+    items.append(item)
     for addon_id in sorted(addons):
         try:
             addon = xbmcaddon.Addon(addon_id)
