@@ -69,11 +69,15 @@ def write_channel_file():
 
 @plugin.route('/clear_channels')
 def clear_channels():
-    channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
-    channels.clear()
-    channels.sync()
-    write_channel_file()
-
+    conn = get_conn()
+    #conn.execute('DROP TABLE IF EXISTS channels')
+    #conn.execute(
+    #'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
+    conn.execute('DROP TABLE IF EXISTS addons')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')
+    conn.commit()
+    conn.close()
 
 @plugin.route('/add_channel/<channel_name>/<path>/<icon>/<ask>')
 def add_channel(channel_name,path,icon,ask):
@@ -520,12 +524,18 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     items.extend(channel_items)
     return items
 
-@plugin.route('/activate_channel/<addon_name>/<channel_name>')
-def activate_channel(addon_name,channel_name):
-    channels = plugin.get_storage(addon_name)
-    if channel_name in channels:
-        link = channels[channel_name]
-        xbmc.executebuiltin('Container.Update("%s")' % link)
+@plugin.route('/activate_channel/<addon_id>/<channel_name>')
+def activate_channel(addon_id,channel_name):
+    #channels = plugin.get_storage(addon_id)
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM addons WHERE addon=? AND name=?', [addon_id,channel_name])
+    row = c.fetchone()
+    link = row["path"]
+    icon = row["icon"]
+    #if channel_name in channels:
+    #    link = channels[channel_name]
+    xbmc.executebuiltin('Container.Update("%s")' % link)
 
 
 @plugin.route('/channel/<channel_id>/<channel_name>')
@@ -603,15 +613,22 @@ def addon_streams():
     global big_list_view
     big_list_view = True
     items = []
-    addons = plugin.get_storage('addons')
-    for addon_name in sorted(addons):
+    #addons = plugin.get_storage('addons')
+    
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT DISTINCT addon FROM addons')
+    addons = [row["addon"] for row in c]
+    #channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+    
+    for addon_id in sorted(addons):
         try:
-            addon = xbmcaddon.Addon(addon_name)
+            addon = xbmcaddon.Addon(addon_id)
             if addon:
                 icon = addon.getAddonInfo('icon')
                 item = {
                 'label': '[COLOR green][B]%s[/B][/COLOR]' % (addon.getAddonInfo('name')),
-                'path': plugin.url_for(streams, addon_name=addon_name),
+                'path': plugin.url_for(streams, addon_id=addon_id),
                 'thumbnail': icon,
                 'icon': icon,
                 'is_playable': False,
@@ -622,21 +639,28 @@ def addon_streams():
     return items
 
 
-@plugin.route('/streams/<addon_name>')
-def streams(addon_name):
+@plugin.route('/streams/<addon_id>')
+def streams(addon_id):
     global big_list_view
     big_list_view = True
-    addon = xbmcaddon.Addon(addon_name)
+    addon = xbmcaddon.Addon(addon_id)
     if addon:
         icon = addon.getAddonInfo('icon')
     else:
         icon = ''
     items = []
-    streams = plugin.get_storage(addon_name)
+    #streams = plugin.get_storage(addon_id)
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM addons WHERE addon=?', [addon_id])
+    streams = dict([row["name"],[row["path"], row["icon"]]] for row in c)
+    #streams = dict((row['name'], (row['path'], row['icon'])) for row in c)
+    
     for stream_name in sorted(streams):
+        (path,icon) = streams[stream_name]
         item = {
         'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
-        'path': plugin.url_for(stream_play, addon_name=addon_name, stream_name=stream_name.encode("utf8")),
+        'path': plugin.url_for(stream_play, addon_id=addon_id, stream_name=stream_name.encode("utf8")),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
@@ -644,18 +668,24 @@ def streams(addon_name):
         items.append(item)
     return items
 
-@plugin.route('/stream_play/<addon_name>/<stream_name>')
-def stream_play(addon_name,stream_name):
+@plugin.route('/stream_play/<addon_id>/<stream_name>')
+def stream_play(addon_id,stream_name):
     global big_list_view
     big_list_view = True
-    addon = xbmcaddon.Addon(addon_name)
+    addon = xbmcaddon.Addon(addon_id)
     if addon:
         icon = addon.getAddonInfo('icon')
     else:
         icon = ''
     items = []
-    streams = plugin.get_storage(addon_name)
-    stream = streams[stream_name.decode("utf8")]
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM addons WHERE addon=? AND name=?', [addon_id,stream_name])
+    row = c.fetchone()
+    stream = row["path"]
+    icon = row["icon"]
+    #streams = plugin.get_storage(addon_id)
+    #stream = streams[stream_name.decode("utf8")]
     item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Default Player'),
     'path': stream,
@@ -665,8 +695,16 @@ def stream_play(addon_name,stream_name):
     }
     items.append(item)
     item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Alternative Player'),
+    'path': stream,
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    items.append(item)    
+    item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Activate Player'),
-    'path': plugin.url_for(activate_channel, addon_name=addon_name, channel_name=stream_name),
+    'path': plugin.url_for(activate_channel, addon_id=addon_id, channel_name=stream_name),
     'thumbnail': icon,
     'icon': icon,
     'is_playable': True,
@@ -729,7 +767,7 @@ def get_url(url):
         return ''
 
 
-def store_channels():
+def store_channels1():
     if plugin.get_setting('ini_reload') == 'true':
         plugin.set_setting('ini_reload','false')
     else:
@@ -792,7 +830,84 @@ def store_channels():
     except:
         pass
 
+        
+def store_channels():
+    if plugin.get_setting('ini_reload') == 'true':
+        plugin.set_setting('ini_reload','false')
+    else:
+        return
+        
+    conn = get_conn()
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.row_factory = sqlite3.Row
+    #conn.execute('DROP TABLE IF EXISTS addons')
 
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')
+
+    #addons = plugin.get_storage('addons')
+    items = []
+    #for addon in addons:
+    #    channels = plugin.get_storage(addon)
+    #    channels.clear()
+    #addons.clear()
+
+    if plugin.get_setting('ini_type') == '1':
+        url = plugin.get_setting('ini_url')
+        r = requests.get(url)
+        file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/addons.ini'
+        xmltv_f = xbmcvfs.File(file_name,'w')
+        xml = r.content
+        xmltv_f.write(xml)
+        xmltv_f.seek(0,0)
+        #NOTE not xmltv_f.close()
+        ini_file = file_name
+        dt = datetime.now()
+        now = int(time.mktime(dt.timetuple()))
+        plugin.set_setting("ini_url_last",str(now))
+    else:
+        ini_file = plugin.get_setting('ini_file')
+        path = xbmc.translatePath(plugin.get_setting('ini_file'))
+        stat = xbmcvfs.Stat(path)
+        modified = str(stat.st_mtime())
+        plugin.set_setting('ini_last_modified',modified)
+
+    try:
+        if plugin.get_setting('ini_type') == '1':
+            f = xmltv_f
+        else:
+            f = xbmcvfs.File(ini_file)
+        items = f.read().splitlines()
+        f.close()
+        addon = 'nothing'
+        #addons = plugin.get_storage('addons')
+        for item in items:
+            if item.startswith('['):
+                addon = item.strip('[] \t')
+                #channels = plugin.get_storage(addon)
+            elif item.startswith('#'):
+                pass
+            else:
+                name_url = item.split('=',1)
+                if len(name_url) == 2:
+                    name = name_url[0]
+                    url = name_url[1]
+                    if url:
+                        #channels[name] = url
+                        #addons[addon] = addon
+                        log2(item)
+                        icon = ''
+                        play_method = ''
+                        conn.execute("INSERT OR IGNORE INTO addons(addon, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [addon, name, url, play_method, icon])
+
+        #addons.sync()
+        #for addon in addons:
+        #    channels = plugin.get_storage(addon)
+        #    channels.sync()
+    except:
+        pass
+    conn.commit()
+    conn.close()
 
 def xml2utc(xml):
     match = re.search(r'([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2}) ([+-])([0-9]{2})([0-9]{2})',xml)
@@ -882,17 +997,17 @@ def xml_channels():
     dialog = xbmcgui.Dialog()
 
     xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
-    if not xbmcvfs.exists('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini'):
-        f = xbmcvfs.File('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini','w')
-        f.close()
+    #if not xbmcvfs.exists('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini'):
+    #    f = xbmcvfs.File('special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini','w')
+    #    f.close()
 
     conn = get_conn()
     conn.execute('PRAGMA foreign_keys = ON')
     conn.row_factory = sqlite3.Row
-    conn.execute('DROP TABLE IF EXISTS channels')
+    #conn.execute('DROP TABLE IF EXISTS channels')
     conn.execute('DROP TABLE IF EXISTS programmes')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, icon TEXT, PRIMARY KEY (id))')
+    'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
     conn.execute(
     'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
     conn.execute(
@@ -948,7 +1063,7 @@ def xml_channels():
                         if path:
                             icon = "%s/%s.png" % (path,display_name)
 
-                conn.execute("INSERT OR IGNORE INTO channels(id, name, icon) VALUES(?, ?, ?)", [id, display_name, icon])
+                conn.execute("INSERT OR IGNORE INTO channels(id, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [id, display_name, '', '', icon])
                 if (now - last).seconds > 0.5:
                     dialog.notification("TV Listings (xmltv)","loading channels: "+display_name)
                     last = now
@@ -1433,21 +1548,23 @@ def urlencode_path(path):
 
 @plugin.route('/browse_addons')
 def browse_addons():
+    global big_list_view
+    big_list_view = True
     try:
-        response = RPC.addons.get_addons(type="xbmc.addon.video")
+        response = RPC.addons.get_addons(type="xbmc.addon.video",properties=["thumbnail"])
     except:
          return
 
     addons = response["addons"]
     ids = [a["addonid"] for a in addons]
-
+    thumbnails = dict([[f["addonid"], f["thumbnail"]] for f in addons])
     items = []
     for id in ids:
         path = "plugin://%s" % id
         path = urlencode_path(path)
         addon = xbmcaddon.Addon(id)
         name = addon.getAddonInfo('name')
-        item = {'label':name,'path':plugin.url_for('browse_path', addon=id, path=path)}
+        item = {'label':name,'path':plugin.url_for('browse_path', addon=id, path=path),'thumbnail':thumbnails[id]}
         items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -1456,54 +1573,95 @@ def browse_addons():
 
 @plugin.route('/browse_path/<addon>/<path>')
 def browse_path(addon,path):
+    global big_list_view
+    big_list_view = True
     try:
-        response = RPC.files.get_directory(media="files", directory=path)
+        response = RPC.files.get_directory(media="files", directory=path, properties=["thumbnail"])
     except:
          return
 
     files = response["files"]
+    #log(files)
     dirs = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "directory"])
     links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
+    thumbnails = dict([[f["label"], f["thumbnail"]] for f in files])
 
     items = []
-    item = {'label':'[COLOR yellow][B]Add Folder to Default Channels[/B][/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=False),'is_playable':False}
+    item = {'label':'[COLOR red][B]Add Folder to Addon Channels[/B][/COLOR]','path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False),'is_playable':False}
     items.append(item)
-    item = {'label':'[COLOR yellow][B]Add Folder to Default Channels with [/B][/COLOR][COLOR green]Addon Name[/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=True),'is_playable':False}
-    items.append(item)
-    item = {'label':'[COLOR green][B]Add Folder to Addon Streams[/B][/COLOR]','path':plugin.url_for('add_ini', addon=addon, path=path),'is_playable':False}
-    items.append(item)
+    #item = {'label':'[COLOR yellow][B]Add Folder to Default Channels[/B][/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=False),'is_playable':False}
+    #items.append(item)
+    #item = {'label':'[COLOR yellow][B]Add Folder to Default Channels with [/B][/COLOR][COLOR green]Addon Name[/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=True),'is_playable':False}
+    #items.append(item)
+    #item = {'label':'[COLOR green][B]Add Folder to Addon Streams[/B][/COLOR]','path':plugin.url_for('add_ini', addon=addon, path=path),'is_playable':False}
+    #items.append(item)
 
     for dir in sorted(dirs):
         path = dirs[dir]
-        item = {'label':dir,'path':plugin.url_for('browse_path', addon=addon, path=path),'is_playable':False}
+        item = {'label':"[B]%s[/B]" % dir,'path':plugin.url_for('browse_path', addon=addon, path=path),'is_playable':False}
         items.append(item)
     for link in sorted(links):
         path = links[link]
-        item = {'label':link.encode("utf8"),'path':plugin.url_for('activate_play', label=link.encode("utf8"), path=path),'is_playable':False}
+        item = {'label':link.encode("utf8"),'path':plugin.url_for('activate_play', label=link.encode("utf8"), path=path),'is_playable':False, 'thumbnail':thumbnails[link]}
+        #item = {'label':link.encode("utf8"),'path':path,'is_playable':False}
         items.append(item)
 
     return items
-
-@plugin.route('/add_defaults/<addon>/<path>/<addon_name>')
-def add_defaults(addon,path,addon_name):
+    
+    
+@plugin.route('/add_addon_channels/<addon>/<path>/<addon_name>')
+def add_addon_channels(addon,path,addon_name):
     try:
-        response = RPC.files.get_directory(media="files", directory=path)
+        response = RPC.files.get_directory(media="files", directory=path, properties=["thumbnail"])
+        #log(response)
     except:
          return
 
+    files = response["files"]
+    links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
+    thumbnails = dict([[f["label"], f["thumbnail"]] for f in files])
+        
+    conn = get_conn()
+    #conn.execute('PRAGMA foreign_keys = ON')
+    #conn.row_factory = sqlite3.Row
+    
+    #addon = xbmcaddon.Addon(addon)
+    #name = addon.getAddonInfo('name')
+    #to_addon = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    for link in sorted(links):
+        conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, icon) VALUES(?, ?, ?, ?)", [addon, link, links[link], thumbnails[link]])
+        #if addon_name == "True":
+        #    title = "%s [COLOR green]%s[/COLOR]" % (link,name)
+        #else:
+        #    title = link
+        #to_addon[title] = links[link]
+    #to_addon.sync()
+    #write_channel_file()
+    conn.commit()
+    conn.close()
+    
+    
+    
+@plugin.route('/add_defaults/<addon>/<path>/<addon_name>')
+def add_defaults(addon,path,addon_name):
+    try:
+        response = RPC.files.get_directory(media="video", directory=path, properties=["thumbnail"])
+    except:
+         return
+    log2(response)
     files = response["files"]
     links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
     addon = xbmcaddon.Addon(addon)
     name = addon.getAddonInfo('name')
-    to_addon = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    #to_addon = plugin.get_storage('plugin.video.tvlistings.xmltv')
     for link in sorted(links):
         if addon_name == "True":
             title = "%s [COLOR green]%s[/COLOR]" % (link,name)
         else:
             title = link
-        to_addon[title] = links[link]
-    to_addon.sync()
-    write_channel_file()
+        #to_addon[title] = links[link]
+    #to_addon.sync()
+    #write_channel_file()
 
 
 @plugin.route('/add_ini/<addon>/<path>')
@@ -1528,6 +1686,8 @@ def add_ini(addon,path):
 def activate_play(label,path):
     items = []
     item = {'label':"%s - Play" % label,'path':path,'is_playable':True}
+    items.append(item)
+    item = {'label':"%s - Alternative Play" % label,'path':path,'is_playable':False}
     items.append(item)
     item = {'label':"%s - Activate" % label,'path':plugin.url_for('activate_link', link=path),'is_playable':True}
     items.append(item)
