@@ -681,7 +681,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT path FROM channels WHERE id=?', [channel_id])
+    c.execute('SELECT path FROM channels WHERE id=?', [channel_id.decode("utf8")])
     row = c.fetchone()
     path = row["path"]
     if path:
@@ -726,7 +726,7 @@ def channel(channel_id,channel_name):
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT * FROM channels WHERE id=?', [channel_id])
+    c.execute('SELECT * FROM channels WHERE id=?', [channel_id.decode("utf8")])
     row = c.fetchone()
     path = row["path"]
     icon = row["icon"]
