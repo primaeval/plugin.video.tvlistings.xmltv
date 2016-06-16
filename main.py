@@ -841,7 +841,7 @@ def channel(channel_id,channel_name):
             'thumbnail':icon,
             'is_playable':True}
         items.append(item)
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Alternative Player'),
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Alternative Method'),
             'path':path,
             'thumbnail':icon,
             'is_playable':False}
@@ -910,7 +910,21 @@ def addon_streams():
         except:
             pass
     return items
+    
+    
+@plugin.route('/addon_streams_to_channels/<addon_id>')
+def addon_streams_to_channels(addon_id):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM addons WHERE addon=?', [addon_id])
+    channels = dict((row['name'], (row['path'], row['icon'])) for row in c)
+    
+    for channel_name in channels:
+        (path, icon) = channels[channel_name]
+        c.execute('UPDATE channels SET path=?, icon=? WHERE name=?', [path, icon, channel_name])
 
+    conn.commit()
+    conn.close()
 
 @plugin.route('/streams/<addon_id>')
 def streams(addon_id):
@@ -922,6 +936,13 @@ def streams(addon_id):
     else:
         icon = ''
     items = []
+    
+    item = {'label':'[COLOR red][B]Use All as Default Channels[/B][/COLOR]',
+        'path':plugin.url_for('addon_streams_to_channels', addon_id=addon_id),
+        'is_playable':False}
+    items.append(item)
+    
+    
     #streams = plugin.get_storage(addon_id)
     conn = get_conn()
     c = conn.cursor()
@@ -968,7 +989,7 @@ def stream_play(addon_id,stream_name):
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Alternative Player'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Alternative Method'),
     'path': stream,
     'thumbnail': icon,
     'icon': icon,
@@ -976,29 +997,12 @@ def stream_play(addon_id,stream_name):
     }
     items.append(item)    
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Activate Player'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Activate Method'),
     'path': plugin.url_for(activate_channel, addon_id=addon_id, channel_name=stream_name),
     'thumbnail': icon,
     'icon': icon,
     'is_playable': True,
     }
-    items.append(item)
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]' % (stream_name, 'Add Stream'),
-    'path': plugin.url_for(add_channel, channel_name=stream_name, path=urllib.quote( stream , safe=''), icon='DefaultIcon.png', ask='true'),
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': True,
-    }
-    items.append(item)
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]' % (stream_name, 'Remove Stream'),
-    'path': plugin.url_for(remove_channel, channel_name=stream_name, path=urllib.quote( stream , safe=''), icon='DefaultIcon.png'),
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': True,
-    }
-    items.append(item)
     return items
 
 
