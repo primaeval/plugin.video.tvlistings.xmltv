@@ -128,7 +128,6 @@ def channel_list():
     big_list_view = True
     conn = get_conn()
     c = conn.cursor()
-
     c.execute('SELECT * FROM channels')
     items = []
     for row in c:
@@ -269,6 +268,10 @@ def channel_remap_all(channel_id,channel_name):
     item = {'label':label,'icon':img_url,'thumbnail':img_url}
     item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
     items.append(item)
+    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
+    item = {'label':label,'icon':img_url,'thumbnail':img_url}
+    item['path'] = plugin.url_for('reset_channel', channel_id=channel_id.encode("utf8"))
+    items.append(item)
 
     conn = get_conn()
     c = conn.cursor()
@@ -342,6 +345,13 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
         }
         items.append(item)
     return items
+
+
+@plugin.route('/reset_channel/<channel_id>')
+def reset_channel(channel_id):
+    conn = get_conn()
+    conn.execute('UPDATE channels SET path=NULL WHERE id=?', [channel_id])
+    conn.commit()
 
 
 @plugin.route('/channel_remap_stream/<addon_id>/<channel_id>/<channel_name>/<stream_name>')
@@ -561,6 +571,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     if tvdb_id:
         if season and episode:
             meta_url = "plugin://plugin.video.meta/tv/play/%s/%s/%s/%s" % (tvdb_id,season,episode,'select')
+            log(meta_url)
             items.append({
             'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%sE%s[/B][/COLOR] [COLOR green][B]Meta episode[/B][/COLOR]' % (title,season,episode),
             'path': meta_url,
@@ -1292,7 +1303,10 @@ def channels():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute('SELECT * FROM channels')
+    if plugin.get_setting('hide_unmapped') == 'false':
+        c.execute('SELECT * FROM channels')
+    else:
+        c.execute('SELECT * FROM channels WHERE path IS NOT NULL')
     items = []
     for row in c:
         channel_id = row['id']
@@ -1315,7 +1329,10 @@ def now_next_time(seconds):
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute('SELECT *, name FROM channels')
+    if plugin.get_setting('hide_unmapped') == 'false':
+        c.execute('SELECT * FROM channels')
+    else:
+        c.execute('SELECT * FROM channels WHERE path IS NOT NULL')
     channels = [(row['id'], row['name'], row['icon']) for row in c]
 
     now = datetime.fromtimestamp(float(seconds))
@@ -1757,7 +1774,7 @@ def browse_path(addon,path):
     thumbnails = dict([[f["label"], f["thumbnail"]] for f in files])
 
     items = []
-    item = {'label':'[COLOR red][B]Add Folder to Addon Channels[/B][/COLOR]',
+    item = {'label':'[COLOR red][B]Add Folder to Addon Shortcuts[/B][/COLOR]',
     'path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False),
     'thumbnail':addon_icon,
     'is_playable':False}
@@ -1890,7 +1907,7 @@ def index():
         'path': plugin.url_for('channel_list'),
     },
     {
-        'label': '[COLOR red][B]Remap Channel Defaults[/B][/COLOR]',
+        'label': '[COLOR red][B]Default Channels[/B][/COLOR]',
         'path': plugin.url_for('channel_remap'),
     },
     {
