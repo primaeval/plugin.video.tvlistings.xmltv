@@ -88,9 +88,9 @@ def export_channels():
     f = xbmcvfs.File(file_name,'w')
     write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel export.\n\n[plugin.video.tvlistings.xmltv]\n"
     f.write(write_str.encode("utf8"))
-        
+
     items = []
-    
+
     conn = get_conn()
     c = conn.cursor()
 
@@ -102,10 +102,10 @@ def export_channels():
             path = ''
         write_str = "%s=%s\n" % (channel_id,path)
         f.write(write_str.encode("utf8"))
-    
+
     c.execute('SELECT DISTINCT addon FROM addons')
     addons = [row["addon"] for row in c]
-    
+
     for addon in addons:
         write_str = "[%s]\n" % (addon)
         f.write(write_str.encode("utf8"))
@@ -117,11 +117,11 @@ def export_channels():
                 path = ''
             write_str = "%s=%s\n" % (channel_name,path)
             f.write(write_str.encode("utf8"))
-            
+
     c.close()
     return items
-    
-    
+
+
 @plugin.route('/channel_list')
 def channel_list():
     global big_list_view
@@ -138,7 +138,8 @@ def channel_list():
         if path:
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
-            item['path'] = plugin.url_for('activate_play', label=channel_name, path=path)
+            #item['path'] = plugin.url_for('activate_play', label=channel_name, path=path)
+            item['path'] = plugin.url_for('channel_play', channel_id=channel_id)
             items.append(item)
     c.close()
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -171,13 +172,13 @@ def channel_remap():
     sorted_items = sorted(items, key=lambda item: item['label'])
     return sorted_items
 
-    
+
 @plugin.route('/channel_remap_addons/<channel_id>/<channel_name>')
 def channel_remap_addons(channel_id,channel_name):
     global big_list_view
     big_list_view = True
     items = []
-    
+
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT DISTINCT addon FROM addons')
@@ -237,7 +238,8 @@ def search_addons(channel_name):
         label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         item = {
         'label': label,
-        'path': plugin.url_for('activate_play', label=label.encode("utf8"), path=path),
+        #'path': plugin.url_for('activate_play', label=label.encode("utf8"), path=path),
+        'path': plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
@@ -358,14 +360,15 @@ def reset_channel(channel_id):
 def channel_remap_stream(addon_id,channel_id,channel_name,stream_name):
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT path, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name])
+    c.execute('SELECT path, play_method, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name])
     row = c.fetchone()
     path = row["path"]
     icon = row["icon"]
+    method = row["play_method"]
     if icon:
-        c.execute('UPDATE channels SET path=?, icon=? WHERE id=?', [path,icon,channel_id])
+        c.execute('UPDATE channels SET path=?, play_method=?, icon=? WHERE id=?', [path,method,icon,channel_id])
     else:
-        c.execute('UPDATE channels SET path=? WHERE id=?', [path,channel_id])
+        c.execute('UPDATE channels SET path=?, play_method=? WHERE id=?', [path,method,channel_id])
     conn.commit()
 
 
@@ -797,14 +800,21 @@ def channel(channel_id,channel_name):
     row = c.fetchone()
     path = row["path"]
     icon = row["icon"]
+    method = row["play_method"]
 
     if path:
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Default Player'),
+        if method == "not_playable":
+            default_color = "green"
+            alternative_color = "white"
+        else:
+            default_color = "white"
+            alternative_color = "green"
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,default_color,'Default Player'),
             'path':path,
             'thumbnail':icon,
             'is_playable':True}
         items.append(item)
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Alternative Method'),
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,alternative_color,'Alternative Method'),
             'path':path,
             'thumbnail':icon,
             'is_playable':False}
@@ -872,8 +882,8 @@ def addon_streams():
     return items
 
 
-@plugin.route('/addon_streams_to_channels/<addon_id>')
-def addon_streams_to_channels(addon_id):
+@plugin.route('/addon_streams_to_channels/<addon_id>/<method>')
+def addon_streams_to_channels(addon_id,method):
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT * FROM addons WHERE addon=?', [addon_id])
@@ -882,11 +892,10 @@ def addon_streams_to_channels(addon_id):
     for channel_name in channels:
         (path, icon) = channels[channel_name]
         channel_name = re.sub(r'\(.*?\)$','',channel_name).strip()
-        log(channel_name)
         if icon:
-            c.execute('UPDATE channels SET path=?, icon=? WHERE name=?', [path, icon, channel_name])
+            c.execute('UPDATE channels SET path=?, play_method=?, icon=? WHERE name=?', [path, method, icon, channel_name])
         else:
-            c.execute('UPDATE channels SET path=? WHERE name=?', [path, channel_name])
+            c.execute('UPDATE channels SET path=?, play_method=? WHERE name=?', [path, method, channel_name])
 
     conn.commit()
     conn.close()
@@ -904,10 +913,16 @@ def streams(addon_id):
     items = []
 
     item = {'label':'[COLOR red][B]Use All as Default Channels[/B][/COLOR]',
-        'path':plugin.url_for('addon_streams_to_channels', addon_id=addon_id),
+        'path':plugin.url_for('addon_streams_to_channels', addon_id=addon_id, method="playable"),
         'thumbnail':icon,
         'is_playable':False}
     items.append(item)
+    item = {'label':'[COLOR green][B]Use All as Default Channels With Alternative Play Method[/B][/COLOR]',
+        'path':plugin.url_for('addon_streams_to_channels', addon_id=addon_id, method="not_playable"),
+        'thumbnail':icon,
+        'is_playable':False}
+    items.append(item)
+
 
     conn = get_conn()
     c = conn.cursor()
@@ -927,6 +942,81 @@ def streams(addon_id):
     return items
 
 
+
+@plugin.route('/channel_play/<channel_id>')
+def channel_play(channel_id):
+    global big_list_view
+    big_list_view = True
+    #addon = xbmcaddon.Addon(addon_id)
+    #if addon:
+    #    icon = addon.getAddonInfo('icon')
+    #else:
+    #    icon = ''
+    items = []
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM channels WHERE id=?', [channel_id])
+    row = c.fetchone()
+    channel_name = row["name"]
+    path = row["path"]
+    icon = row["icon"]
+    method = row["play_method"]
+    if method == "not_playable":
+        default_color = "green"
+        alternative_color = "white"
+    else:
+        default_color = "white"
+        alternative_color = "green"
+
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, default_color,'Default Player'),
+    'path': path,
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': True,
+    }
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, alternative_color,'Alternative Method'),
+    'path': path,
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, default_color,'Set Default Method as Default'),
+    'path': plugin.url_for(set_channel_method, channel_id=channel_id, method='playable'),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, alternative_color,'Set Alternative Method as Default'),
+    'path': plugin.url_for(set_channel_method, channel_id=channel_id, method='not_playable'),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    items.append(item)
+
+    return items
+
+@plugin.route('/set_channel_method/<channel_id>/<method>')
+def set_channel_method(channel_id,method):
+    conn = get_conn()
+    conn.execute('UPDATE channels SET play_method=? WHERE id=?', [method,channel_id])
+    conn.commit()
+
+
+@plugin.route('/set_addon_method/<addon_id>/<stream_name>/<method>')
+def set_addon_method(addon_id,stream_name,method):
+    conn = get_conn()
+    conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name])
+    conn.commit()
+
+
 @plugin.route('/stream_play/<addon_id>/<stream_name>')
 def stream_play(addon_id,stream_name):
     global big_list_view
@@ -943,9 +1033,17 @@ def stream_play(addon_id,stream_name):
     row = c.fetchone()
     stream = row["path"]
     icon = row["icon"]
+    method = row["play_method"]
+
+    if method == "not_playable":
+        default_color = "green"
+        alternative_color = "white"
+    else:
+        default_color = "white"
+        alternative_color = "green"
 
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Default Player'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, default_color, 'Default Player'),
     'path': stream,
     'thumbnail': icon,
     'icon': icon,
@@ -953,7 +1051,7 @@ def stream_play(addon_id,stream_name):
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Alternative Method'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, alternative_color, 'Alternative Method'),
     'path': stream,
     'thumbnail': icon,
     'icon': icon,
@@ -961,12 +1059,22 @@ def stream_play(addon_id,stream_name):
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, 'Activate Method'),
-    'path': plugin.url_for(activate_channel, addon_id=addon_id, channel_name=stream_name),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, default_color,'Set Default Method as Default'),
+    'path': plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='playable'),
     'thumbnail': icon,
     'icon': icon,
-    'is_playable': True,
+    'is_playable': False,
     }
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, alternative_color,'Set Alternative Method as Default'),
+    'path': plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='not_playable'),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    items.append(item)
+
     return items
 
 
@@ -1167,7 +1275,7 @@ def xml_channels():
     conn.row_factory = sqlite3.Row
     conn.execute('DROP TABLE IF EXISTS programmes')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')    
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')
     conn.execute(
     'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
     conn.execute(
@@ -1794,7 +1902,7 @@ def browse_path(addon,path):
     for link in sorted(links):
         path = links[link]
         item = {'label':re.sub('\[.*?\]','',link).encode("utf8"),
-        'path':plugin.url_for('activate_play', label=re.sub('\[.*?\]','',link).encode("utf8"), path=path),
+        'path':plugin.url_for('activate_play', label=re.sub('\[.*?\]','',link).encode("utf8"), path=path, icon=thumbnails[link]),
         'is_playable':False,
         'thumbnail':thumbnails[link]}
         items.append(item)
@@ -1862,15 +1970,17 @@ def add_ini(addon,path):
     write_channel_file()
 
 
-@plugin.route('/activate_play/<label>/<path>')
-def activate_play(label,path):
+@plugin.route('/activate_play/<label>/<path>/<icon>')
+def activate_play(label,path,icon):
+    global big_list_view
+    big_list_view = True
     items = []
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Play[/B][/COLOR]" % label,'path':path,'is_playable':True}
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Play[/B][/COLOR]" % label,'path':path,'is_playable':True, 'thumbnail':icon }
     items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Alternative Play[/B][/COLOR]" % label,'path':path,'is_playable':False}
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Alternative Play[/B][/COLOR]" % label,'path':path,'is_playable':False, 'thumbnail':icon }
     items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Activate Play[/B][/COLOR]" % label,'path':plugin.url_for('activate_link', link=path),'is_playable':True}
-    items.append(item)
+    #item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Activate Play[/B][/COLOR]" % label,'path':plugin.url_for('activate_link', link=path),'is_playable':True}
+    #items.append(item)
     return items
 
 
