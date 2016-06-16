@@ -881,6 +881,8 @@ def addon_streams_to_channels(addon_id):
 
     for channel_name in channels:
         (path, icon) = channels[channel_name]
+        channel_name = re.sub(r'\(.*?\)$','',channel_name).strip()
+        log(channel_name)
         if icon:
             c.execute('UPDATE channels SET path=?, icon=? WHERE name=?', [path, icon, channel_name])
         else:
@@ -1308,7 +1310,7 @@ def channels():
     if plugin.get_setting('hide_unmapped') == 'false':
         c.execute('SELECT * FROM channels')
     else:
-        c.execute('SELECT * FROM channels WHERE path IS NOT NULL')
+        c.execute('SELECT * FROM channels WHERE path IS NOT ""')
     items = []
     for row in c:
         channel_id = row['id']
@@ -1334,7 +1336,7 @@ def now_next_time(seconds):
     if plugin.get_setting('hide_unmapped') == 'false':
         c.execute('SELECT * FROM channels')
     else:
-        c.execute('SELECT * FROM channels WHERE path IS NOT NULL')
+        c.execute('SELECT * FROM channels WHERE path IS NOT ""')
     channels = [(row['id'], row['name'], row['icon']) for row in c]
 
     now = datetime.fromtimestamp(float(seconds))
