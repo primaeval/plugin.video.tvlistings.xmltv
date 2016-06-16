@@ -1275,6 +1275,11 @@ def xml_channels():
     conn.execute(
     'CREATE TABLE IF NOT EXISTS watch(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
 
+    c = conn.cursor()
+    c.execute('SELECT id FROM channels')
+    old_channel_ids = [row["id"] for row in c]
+
+    
     dialog.notification("TV Listings (xmltv)","downloading xmltv file")
     if plugin.get_setting('xmltv_type') == '1':
         url = plugin.get_setting('xmltv_url')
@@ -1304,11 +1309,13 @@ def xml_channels():
     context = iter(context)
     event, root = context.next()
     last = datetime.now()
+    new_channel_ids = []
     for event, elem in context:
         if event == "end":
             now = datetime.now()
             if elem.tag == "channel":
                 id = elem.attrib['id']
+                new_channel_ids.append(id)
                 display_name = elem.find('display-name').text
                 try:
                     icon = elem.find('icon').attrib['src']
@@ -1382,6 +1389,9 @@ def xml_channels():
                     last = now
             root.clear()
 
+    remove_channel_ids = set(old_channel_ids) - set(new_channel_ids)
+    for id in remove_channel_ids:
+        conn.execute('DELETE FROM channels WHERE id=?', [id])
     conn.commit()
     conn.close()
     plugin.set_setting('xmltv_updating', 'false')
