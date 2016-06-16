@@ -1165,6 +1165,8 @@ def xml_channels():
     conn.row_factory = sqlite3.Row
     conn.execute('DROP TABLE IF EXISTS programmes')
     conn.execute(
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')    
+    conn.execute(
     'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
     conn.execute(
     'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
@@ -1293,7 +1295,7 @@ def xml_channels():
     conn.commit()
     conn.close()
     plugin.set_setting('xmltv_updating', 'false')
-    channel_templates()
+
 
 
 @plugin.route('/channels')
@@ -1782,15 +1784,15 @@ def browse_path(addon,path):
 
     for dir in sorted(dirs):
         path = dirs[dir]
-        item = {'label':"[B]%s[/B]" % dir,
+        item = {'label':"[B]%s[/B]" % re.sub('\[.*?\]','',dir),
         'path':plugin.url_for('browse_path', addon=addon, path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
         items.append(item)
     for link in sorted(links):
         path = links[link]
-        item = {'label':link.encode("utf8"),
-        'path':plugin.url_for('activate_play', label=link.encode("utf8"), path=path),
+        item = {'label':re.sub('\[.*?\]','',link).encode("utf8"),
+        'path':plugin.url_for('activate_play', label=re.sub('\[.*?\]','',link).encode("utf8"), path=path),
         'is_playable':False,
         'thumbnail':thumbnails[link]}
         items.append(item)
@@ -1812,7 +1814,7 @@ def add_addon_channels(addon,path,addon_name):
     conn = get_conn()
 
     for link in sorted(links):
-        conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, icon) VALUES(?, ?, ?, ?)", [addon, link, links[link], thumbnails[link]])
+        conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, icon) VALUES(?, ?, ?, ?)", [addon, re.sub('\[.*?\]','',link), links[link], thumbnails[link]])
 
     conn.commit()
     conn.close()
