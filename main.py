@@ -73,6 +73,7 @@ def clear_channels():
     #conn.execute('DROP TABLE IF EXISTS channels')
     #conn.execute(
     #'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
+    conn.execute('UPDATE channels SET path=NULL')
     conn.execute('DROP TABLE IF EXISTS addons')
     conn.execute(
     'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')
@@ -137,7 +138,45 @@ def channel_templates():
 
     c.close()
 
-
+@plugin.route('/export_channels')
+def export_channels():
+    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/plugin.video.tvlistings.xmltv.ini'
+    f = xbmcvfs.File(file_name,'w')
+    write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel export.\n\n[plugin.video.tvlistings.xmltv]\n"
+    f.write(write_str.encode("utf8"))
+        
+    items = []
+    
+    conn = get_conn()
+    c = conn.cursor()
+    #channels = plugin.get_storage('plugin.video.tvlistings.xmltv')
+    c.execute('SELECT id,path FROM channels')
+    for row in c:
+        channel_id = row['id']
+        path = row['path']
+        if not path:
+            path = ''
+        write_str = "%s=%s\n" % (channel_id,path)
+        f.write(write_str.encode("utf8"))
+    
+    c.execute('SELECT DISTINCT addon FROM addons')
+    addons = [row["addon"] for row in c]
+    
+    for addon in addons:
+        write_str = "[%s]\n" % (addon)
+        f.write(write_str.encode("utf8"))
+        c.execute('SELECT name,path FROM addons WHERE addon=?', [addon])
+        for row in c:
+            channel_name = row['name']
+            path = row['path']
+            if not path:
+                path = ''
+            write_str = "%s=%s\n" % (channel_name,path)
+            f.write(write_str.encode("utf8"))
+            
+    c.close()
+    return items
+    
 @plugin.route('/channel_list')
 def channel_list():
     global big_list_view

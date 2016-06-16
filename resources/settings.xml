@@ -4,11 +4,6 @@
 <setting id="show_plot" label="Show Plot" type="bool" default="true" />
 <setting label="Prime Time" type="enum" id="prime" default="21" values="$HOURS" />
 </category>
-<category label="Channels">
-<setting id="channel_context_menu" label="Channel Context Menu [COLOR yellow]Add/Remove[/COLOR]" type="bool" default="true" />
-<setting type="sep"/>
-<setting label="Clear channels" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
-</category>
 <category label="XMLTV Data">
 <setting label="XMLTV Type" type="enum" id="xmltv_type" default="File" values="File|Url" />
 <setting id="xmltv_url" label="XMLTV Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/guide.xmltv" />
@@ -40,6 +35,8 @@
 <setting label="Clear reminders" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_reminders)"/>
 </category>
 <category label="Maintenance">
+<setting label="Export Channel List" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/export_channels)"/>
+<setting label="[COLOR red]Clear channels[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
 <setting label="[COLOR red]Delete Everything![/COLOR]"  type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/nuke)"/>
 </category>
 </settings>
