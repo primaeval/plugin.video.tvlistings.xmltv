@@ -978,6 +978,7 @@ def streams(addon_id):
     
     item = {'label':'[COLOR red][B]Use All as Default Channels[/B][/COLOR]',
         'path':plugin.url_for('addon_streams_to_channels', addon_id=addon_id),
+        'thumbnail':icon,
         'is_playable':False}
     items.append(item)
     
@@ -1082,69 +1083,6 @@ def get_url(url):
     except:
         return ''
 
-
-def store_channels1():
-    if plugin.get_setting('ini_reload') == 'true':
-        plugin.set_setting('ini_reload','false')
-    else:
-        return
-
-    addons = plugin.get_storage('addons')
-    items = []
-    for addon in addons:
-        channels = plugin.get_storage(addon)
-        channels.clear()
-    addons.clear()
-
-    if plugin.get_setting('ini_type') == '1':
-        url = plugin.get_setting('ini_url')
-        r = requests.get(url)
-        file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/addons.ini'
-        xmltv_f = xbmcvfs.File(file_name,'w')
-        xml = r.content
-        xmltv_f.write(xml)
-        xmltv_f.seek(0,0)
-        #NOTE not xmltv_f.close()
-        ini_file = file_name
-        dt = datetime.now()
-        now = int(time.mktime(dt.timetuple()))
-        plugin.set_setting("ini_url_last",str(now))
-    else:
-        ini_file = plugin.get_setting('ini_file')
-        path = xbmc.translatePath(plugin.get_setting('ini_file'))
-        stat = xbmcvfs.Stat(path)
-        modified = str(stat.st_mtime())
-        plugin.set_setting('ini_last_modified',modified)
-
-    try:
-        if plugin.get_setting('ini_type') == '1':
-            f = xmltv_f
-        else:
-            f = xbmcvfs.File(ini_file)
-        items = f.read().splitlines()
-        f.close()
-        addon = 'nothing'
-        addons = plugin.get_storage('addons')
-        for item in items:
-            if item.startswith('['):
-                addon = item.strip('[] \t')
-                channels = plugin.get_storage(addon)
-            elif item.startswith('#'):
-                pass
-            else:
-                name_url = item.split('=',1)
-                if len(name_url) == 2:
-                    name = name_url[0]
-                    url = name_url[1]
-                    if url:
-                        channels[name] = url
-                        addons[addon] = addon
-        addons.sync()
-        for addon in addons:
-            channels = plugin.get_storage(addon)
-            channels.sync()
-    except:
-        pass
 
         
 def store_channels():
@@ -1891,6 +1829,10 @@ def browse_addons():
 def browse_path(addon,path):
     global big_list_view
     big_list_view = True
+    
+    addon_icon = xbmcaddon.Addon(addon).getAddonInfo('icon')
+
+        
     try:
         response = RPC.files.get_directory(media="files", directory=path, properties=["thumbnail"])
     except:
@@ -1903,23 +1845,26 @@ def browse_path(addon,path):
     thumbnails = dict([[f["label"], f["thumbnail"]] for f in files])
 
     items = []
-    item = {'label':'[COLOR red][B]Add Folder to Addon Channels[/B][/COLOR]','path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False),'is_playable':False}
+    item = {'label':'[COLOR red][B]Add Folder to Addon Channels[/B][/COLOR]',
+    'path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False),
+    'thumbnail':addon_icon,
+    'is_playable':False}
     items.append(item)
-    #item = {'label':'[COLOR yellow][B]Add Folder to Default Channels[/B][/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=False),'is_playable':False}
-    #items.append(item)
-    #item = {'label':'[COLOR yellow][B]Add Folder to Default Channels with [/B][/COLOR][COLOR green]Addon Name[/COLOR]','path':plugin.url_for('add_defaults', addon=addon, path=path, addon_name=True),'is_playable':False}
-    #items.append(item)
-    #item = {'label':'[COLOR green][B]Add Folder to Addon Streams[/B][/COLOR]','path':plugin.url_for('add_ini', addon=addon, path=path),'is_playable':False}
-    #items.append(item)
+
 
     for dir in sorted(dirs):
         path = dirs[dir]
-        item = {'label':"[B]%s[/B]" % dir,'path':plugin.url_for('browse_path', addon=addon, path=path),'is_playable':False}
+        item = {'label':"[B]%s[/B]" % dir,
+        'path':plugin.url_for('browse_path', addon=addon, path=path),
+        'thumbnail':addon_icon,
+        'is_playable':False}
         items.append(item)
     for link in sorted(links):
         path = links[link]
-        item = {'label':link.encode("utf8"),'path':plugin.url_for('activate_play', label=link.encode("utf8"), path=path),'is_playable':False, 'thumbnail':thumbnails[link]}
-        #item = {'label':link.encode("utf8"),'path':path,'is_playable':False}
+        item = {'label':link.encode("utf8"),
+        'path':plugin.url_for('activate_play', label=link.encode("utf8"), path=path),
+        'is_playable':False, 
+        'thumbnail':thumbnails[link]}
         items.append(item)
 
     return items
@@ -2046,7 +1991,7 @@ def index():
         'path': plugin.url_for('channel_list'),
     },
     {
-        'label': '[COLOR red][B]Remap Channel Default[/B][/COLOR]',
+        'label': '[COLOR red][B]Remap Channel Defaults[/B][/COLOR]',
         'path': plugin.url_for('channel_remap'),
     },
     {
