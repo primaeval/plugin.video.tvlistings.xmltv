@@ -356,7 +356,10 @@ def channel_remap_all(channel_id,channel_name):
         stream_name = row["name"]
         path = row["path"]
         icon = row["icon"]
-        addon = xbmcaddon.Addon(addon_id)
+        try:
+            addon = xbmcaddon.Addon(addon_id)
+        except:
+            continue
         icon = addon.getAddonInfo('icon')
         addon_name = addon.getAddonInfo('name')
         if channel_path == path:
@@ -960,7 +963,10 @@ def addon_streams_to_channels(addon_id):
     
     for channel_name in channels:
         (path, icon) = channels[channel_name]
-        c.execute('UPDATE channels SET path=?, icon=? WHERE name=?', [path, icon, channel_name])
+        if icon:
+            c.execute('UPDATE channels SET path=?, icon=? WHERE name=?', [path, icon, channel_name])
+        else:
+            c.execute('UPDATE channels SET path=? WHERE name=?', [path, channel_name])
 
     conn.commit()
     conn.close()
