@@ -1892,26 +1892,6 @@ def add_defaults(addon,path,addon_name):
             title = link
 
 
-
-@plugin.route('/add_ini/<addon>/<path>')
-def add_ini(addon,path):
-    try:
-        response = RPC.files.get_directory(media="files", directory=path)
-    except:
-         return
-
-    files = response["files"]
-    links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
-
-    all_addons = plugin.get_storage('addons')
-    all_addons[addon] = addon
-    to_addon = plugin.get_storage(addon)
-    for link in sorted(links):
-        to_addon[link] = links[link]
-    to_addon.sync()
-    write_channel_file()
-
-
 @plugin.route('/activate_play/<label>/<path>/<icon>')
 def activate_play(label,path,icon):
     global big_list_view
