@@ -7,14 +7,16 @@ xmltv TV Listings with catchup playback via Meta4Kodi and live playback via addo
 * Now/Next/After
 * Channel Listings
 * Programme Search
+* Watch/Remind Timers
+
+## Usage
+* Choose an xmltv file or url
+* Use the Addon Browser to add a folder of TV channel shortcuts.
+* Automatically remap channels via Addon Shortcuts.
+* Some addon shortcuts need the alternative play method.
 
 ## Notes
-* Create [change_channel] section in addons.ini file for Watch reminders.
-* Huge xmltv files will take forever and may run out of memory.
-* Try using WebGrab++ to make smaller xmltv files.
-* I recommend using Super Favourites to organise your favourite channels.
-* Force ini file reload in the Settings if you change addons.ini or myaddons.ini.
-* xmltv file can reload on a file modification difference. It can be forced too.
+* Try using WebGrab++ to create smaller xmltv files.
 
 ## Disclaimer
 
