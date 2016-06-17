@@ -84,7 +84,7 @@ def remove_channel(channel_name,path,icon):
 
 @plugin.route('/export_channels')
 def export_channels():
-    file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/plugin.video.tvlistings.xmltv.ini'
+    file_name = 'special://profile/addon_data/plugin.video.tvlistings.xmltv/plugin.video.tvlistings.xmltv.ini'
     f = xbmcvfs.File(file_name,'w')
     write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel export.\n\n[plugin.video.tvlistings.xmltv]\n"
     f.write(write_str.encode("utf8"))
@@ -369,6 +369,7 @@ def channel_remap_stream(addon_id,channel_id,channel_name,stream_name):
     else:
         c.execute('UPDATE channels SET path=?, play_method=? WHERE id=?', [path,method,channel_id.decode("utf8")])
     conn.commit()
+    xbmc.executebuiltin('Container.Refresh')
 
 
 @plugin.route('/select_channel/<channel_id>/<channel_name>')
@@ -949,14 +950,14 @@ def set_channel_method(channel_id,method):
     conn = get_conn()
     conn.execute('UPDATE channels SET play_method=? WHERE id=?', [method,channel_id.decode("utf8")])
     conn.commit()
-
+    xbmc.executebuiltin('Container.Refresh')
 
 @plugin.route('/set_addon_method/<addon_id>/<stream_name>/<method>')
 def set_addon_method(addon_id,stream_name,method):
     conn = get_conn()
     conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name.decode("utf8")])
     conn.commit()
-
+    
 
 @plugin.route('/stream_play/<addon_id>/<stream_name>')
 def stream_play(addon_id,stream_name):
@@ -1075,7 +1076,7 @@ def store_channels():
     if plugin.get_setting('ini_type') == '1':
         url = plugin.get_setting('ini_url')
         r = requests.get(url)
-        file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/addons.ini'
+        file_name = 'special://profile/addon_data/plugin.video.tvlistings.xmltv/addons.ini'
         xmltv_f = xbmcvfs.File(file_name,'w')
         xml = r.content
         xmltv_f.write(xml)
@@ -1209,7 +1210,7 @@ def xml_channels():
 
     dialog = xbmcgui.Dialog()
 
-    xbmcvfs.mkdir('special://userdata/addon_data/plugin.video.tvlistings.xmltv')
+    xbmcvfs.mkdir('special://profile/addon_data/plugin.video.tvlistings.xmltv')
 
     conn = get_conn()
     conn.execute('PRAGMA foreign_keys = ON')
@@ -1235,7 +1236,7 @@ def xml_channels():
     if plugin.get_setting('xmltv_type') == '1':
         url = plugin.get_setting('xmltv_url')
         r = requests.get(url)
-        file_name = 'special://userdata/addon_data/plugin.video.tvlistings.xmltv/xmltv.xml'
+        file_name = 'special://profile/addon_data/plugin.video.tvlistings.xmltv/xmltv.xml'
         xmltv_f = xbmcvfs.File(file_name,'w')
         xml = r.content
         xmltv_f.write(xml)
@@ -1764,7 +1765,7 @@ def search_dialog():
 @plugin.route('/nuke')
 def nuke():
     TARGETFOLDER = xbmc.translatePath(
-        'special://userdata/addon_data/plugin.video.tvlistings.xmltv'
+        'special://profile/addon_data/plugin.video.tvlistings.xmltv'
         )
     dialog = xbmcgui.Dialog()
     ok = dialog.ok('TV Listings (xmltv)', '[COLOR red][B]Delete Everything in addon_data Folder?![/B][/COLOR]')
