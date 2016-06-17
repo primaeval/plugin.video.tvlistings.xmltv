@@ -611,35 +611,39 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     tvdb_id = ''
     if int(season) > 0 and int(episode) > 0:
         tvdb_id = get_tvdb_id(title)
-    addon = xbmcaddon.Addon('plugin.video.meta')
-    meta_icon = addon.getAddonInfo('icon')
+    try:
+        addon = xbmcaddon.Addon('plugin.video.meta')
+        meta_icon = addon.getAddonInfo('icon')
+    except:
+        meta_icon = ""
     if tvdb_id:
-        if season and episode:
-            meta_url = "plugin://plugin.video.meta/tv/play/%s/%s/%s/%s" % (tvdb_id,season,episode,'select')
+        if meta_icon:
+            if season and episode:
+                meta_url = "plugin://plugin.video.meta/tv/play/%s/%s/%s/%s" % (tvdb_id,season,episode,'select')
+                items.append({
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%sE%s[/B][/COLOR] [COLOR green][B]Meta episode[/B][/COLOR]' % (title,season,episode),
+                'path': meta_url,
+                'thumbnail': meta_icon,
+                'icon': meta_icon,
+                'is_playable': True,
+                 })
+            if season:
+                meta_url = "plugin://plugin.video.meta/tv/tvdb/%s/%s" % (tvdb_id,season)
+                items.append({
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%s[/B][/COLOR] [COLOR green][B]Meta season[/B][/COLOR]' % (title,season),
+                'path': meta_url,
+                'thumbnail': meta_icon,
+                'icon': meta_icon,
+                'is_playable': False,
+                 })
+            meta_url = "plugin://plugin.video.meta/tv/tvdb/%s" % (tvdb_id)
             items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%sE%s[/B][/COLOR] [COLOR green][B]Meta episode[/B][/COLOR]' % (title,season,episode),
-            'path': meta_url,
-            'thumbnail': meta_icon,
-            'icon': meta_icon,
-            'is_playable': True,
-             })
-        if season:
-            meta_url = "plugin://plugin.video.meta/tv/tvdb/%s/%s" % (tvdb_id,season)
-            items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%s[/B][/COLOR] [COLOR green][B]Meta season[/B][/COLOR]' % (title,season),
+            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
             'path': meta_url,
             'thumbnail': meta_icon,
             'icon': meta_icon,
             'is_playable': False,
              })
-        meta_url = "plugin://plugin.video.meta/tv/tvdb/%s" % (tvdb_id)
-        items.append({
-        'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
-        'path': meta_url,
-        'thumbnail': meta_icon,
-        'icon': meta_icon,
-        'is_playable': False,
-         })
         try:
             addon = xbmcaddon.Addon('plugin.video.sickrage')
             sick_icon =  addon.getAddonInfo('icon')
@@ -657,14 +661,15 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
         if match:
             movie = match.group(1)
             year =  match.group(2) #TODO: Meta doesn't support year yet
-            meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (movie)
-            items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie[/B][/COLOR]' % (title),
-            'path': meta_url,
-            'thumbnail': meta_icon,
-            'icon': meta_icon,
-            'is_playable': False,
-             })
+            if meta_icon:
+                meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (movie)
+                items.append({
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie[/B][/COLOR]' % (title),
+                'path': meta_url,
+                'thumbnail': meta_icon,
+                'icon': meta_icon,
+                'is_playable': False,
+                 })
             try:
                 addon = xbmcaddon.Addon('plugin.video.couchpotato_manager')
                 couch_icon =  addon.getAddonInfo('icon')
@@ -678,22 +683,23 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             except:
                 pass
         else:
-            meta_url = "plugin://plugin.video.meta/tv/search_term/%s/1" % (title)
-            items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
-            'path': meta_url,
-            'thumbnail': meta_icon,
-            'icon': meta_icon,
-            'is_playable': False,
-             })
-            meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (title)
-            items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie search[/B][/COLOR]' % (title),
-            'path': meta_url,
-            'thumbnail': meta_icon,
-            'icon': meta_icon,
-            'is_playable': False,
-             })
+            if meta_icon:
+                meta_url = "plugin://plugin.video.meta/tv/search_term/%s/1" % (title)
+                items.append({
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
+                'path': meta_url,
+                'thumbnail': meta_icon,
+                'icon': meta_icon,
+                'is_playable': False,
+                 })
+                meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (title)
+                items.append({
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie search[/B][/COLOR]' % (title),
+                'path': meta_url,
+                'thumbnail': meta_icon,
+                'icon': meta_icon,
+                'is_playable': False,
+                 })
             try:
                 addon = xbmcaddon.Addon('plugin.video.sickrage')
                 sick_icon =  addon.getAddonInfo('icon')
@@ -809,16 +815,19 @@ def channel(channel_id,channel_name):
         'is_playable':False}
     items.append(item)
 
-    addon = xbmcaddon.Addon('plugin.video.meta')
-    meta_icon = addon.getAddonInfo('icon')
-    meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
-    items.append({
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
-    'path': meta_url,
-    'thumbnail': meta_icon,
-    'icon': meta_icon,
-    'is_playable': False,
-     })
+    try:
+        addon = xbmcaddon.Addon('plugin.video.meta')
+        meta_icon = addon.getAddonInfo('icon')
+        meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
+        items.append({
+        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
+        'path': meta_url,
+        'thumbnail': meta_icon,
+        'icon': meta_icon,
+        'is_playable': False,
+         })
+    except:
+        pass
     return items
 
 
