@@ -859,7 +859,7 @@ def addon_streams_to_channels(addon_id):
         if icon:
             c.execute('UPDATE channels SET path=?, play_method=?, icon=? WHERE name=?', [path, method, icon, channel_name])
         else:
-            c.execute('UPDATE channels SET path=?, play_method=?, WHERE name=?', [path, method, channel_name])
+            c.execute('UPDATE channels SET path=?, play_method=? WHERE name=?', [path, method, channel_name])
 
     conn.commit()
     conn.close()
