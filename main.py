@@ -268,16 +268,16 @@ def channel_remap_all(channel_id,channel_name):
     img_url = get_icon_path('search')
     label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
     item = {'label':label,'icon':img_url,'thumbnail':img_url}
-    item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+    item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id, channel_name=channel_name)
     items.append(item)
     label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
     item = {'label':label,'icon':img_url,'thumbnail':img_url}
-    item['path'] = plugin.url_for('reset_channel', channel_id=channel_id.encode("utf8"))
+    item['path'] = plugin.url_for('reset_channel', channel_id=channel_id)
     items.append(item)
 
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM channels WHERE id=?", [channel_id])
+    c.execute("SELECT * FROM channels WHERE id=?", [channel_id.decode("utf8")])
     row = c.fetchone()
     channel_path = row["path"]
     c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
