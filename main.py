@@ -238,7 +238,6 @@ def search_addons(channel_name):
         label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         item = {
         'label': label,
-        #'path': plugin.url_for('activate_play', label=label.encode("utf8"), path=path),
         'path': plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8")),
         'thumbnail': icon,
         'icon': icon,
@@ -891,11 +890,6 @@ def streams(addon_id):
 def channel_play(channel_id):
     global big_list_view
     big_list_view = True
-    #addon = xbmcaddon.Addon(addon_id)
-    #if addon:
-    #    icon = addon.getAddonInfo('icon')
-    #else:
-    #    icon = ''
     items = []
     conn = get_conn()
     c = conn.cursor()
@@ -1926,8 +1920,6 @@ def activate_play(label,path,icon):
     items.append(item)
     item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Alternative Play[/B][/COLOR]" % label,'path':path,'is_playable':False, 'thumbnail':icon }
     items.append(item)
-    #item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Activate Play[/B][/COLOR]" % label,'path':plugin.url_for('activate_link', link=path),'is_playable':True}
-    #items.append(item)
     return items
 
 
