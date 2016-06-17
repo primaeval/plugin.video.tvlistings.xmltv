@@ -139,7 +139,7 @@ def channel_list():
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
             #item['path'] = plugin.url_for('activate_play', label=channel_name, path=path)
-            item['path'] = plugin.url_for('channel_play', channel_id=channel_id)
+            item['path'] = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"))
             items.append(item)
     c.close()
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -239,7 +239,7 @@ def search_addons(channel_name):
         item = {
         'label': label,
         #'path': plugin.url_for('activate_play', label=label.encode("utf8"), path=path),
-        'path': plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name),
+        'path': plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8")),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
@@ -324,7 +324,7 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute("SELECT * FROM channels WHERE id=?", [channel_id])
+    c.execute("SELECT * FROM channels WHERE id=?", [channel_id.decode("utf8")])
     row = c.fetchone()
     channel_path = row["path"]
 
@@ -352,7 +352,7 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
 @plugin.route('/reset_channel/<channel_id>')
 def reset_channel(channel_id):
     conn = get_conn()
-    conn.execute('UPDATE channels SET path=NULL WHERE id=?', [channel_id])
+    conn.execute('UPDATE channels SET path=NULL WHERE id=?', [channel_id.decode("utf8")])
     conn.commit()
 
 
@@ -360,15 +360,15 @@ def reset_channel(channel_id):
 def channel_remap_stream(addon_id,channel_id,channel_name,stream_name):
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT path, play_method, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name])
+    c.execute('SELECT path, play_method, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name.decode("utf8")])
     row = c.fetchone()
     path = row["path"]
     icon = row["icon"]
     method = row["play_method"]
     if icon:
-        c.execute('UPDATE channels SET path=?, play_method=?, icon=? WHERE id=?', [path,method,icon,channel_id])
+        c.execute('UPDATE channels SET path=?, play_method=?, icon=? WHERE id=?', [path,method,icon,channel_id.decode("utf8")])
     else:
-        c.execute('UPDATE channels SET path=?, play_method=? WHERE id=?', [path,method,channel_id])
+        c.execute('UPDATE channels SET path=?, play_method=? WHERE id=?', [path,method,channel_id.decode("utf8")])
     conn.commit()
 
 
@@ -739,12 +739,12 @@ def channel(channel_id,channel_name):
         else:
             default_color = "white"
             alternative_color = "green"
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,default_color,'Default Player'),
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,default_color,'Play'),
             'path':path,
             'thumbnail':icon,
             'is_playable':True}
         items.append(item)
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,alternative_color,'Alternative Method'),
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,alternative_color,'Alternative Play'),
             'path':path,
             'thumbnail':icon,
             'is_playable':False}
@@ -754,8 +754,13 @@ def channel(channel_id,channel_name):
         'thumbnail':icon,
         'is_playable':False}
     items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Choose New Default'),
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Choose New Default Shortcut'),
         'path': plugin.url_for(channel_remap_all, channel_id=channel_id,channel_name=channel_name),
+        'thumbnail':icon,
+        'is_playable':False}
+    items.append(item)
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Set Default Play Method'),
+        'path': plugin.url_for('channel_play', channel_id=channel_id),
         'thumbnail':icon,
         'is_playable':False}
     items.append(item)
@@ -879,7 +884,7 @@ def channel_play(channel_id):
     items = []
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT * FROM channels WHERE id=?', [channel_id])
+    c.execute('SELECT * FROM channels WHERE id=?', [channel_id.decode("utf8")])
     row = c.fetchone()
     channel_name = row["name"]
     path = row["path"]
@@ -930,14 +935,14 @@ def channel_play(channel_id):
 @plugin.route('/set_channel_method/<channel_id>/<method>')
 def set_channel_method(channel_id,method):
     conn = get_conn()
-    conn.execute('UPDATE channels SET play_method=? WHERE id=?', [method,channel_id])
+    conn.execute('UPDATE channels SET play_method=? WHERE id=?', [method,channel_id.decode("utf8")])
     conn.commit()
 
 
 @plugin.route('/set_addon_method/<addon_id>/<stream_name>/<method>')
 def set_addon_method(addon_id,stream_name,method):
     conn = get_conn()
-    conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name])
+    conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name.decode("utf8")])
     conn.commit()
 
 
@@ -953,7 +958,7 @@ def stream_play(addon_id,stream_name):
     items = []
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT * FROM addons WHERE addon=? AND name=?', [addon_id,stream_name])
+    c.execute('SELECT * FROM addons WHERE addon=? AND name=?', [addon_id,stream_name.decode("utf8")])
     row = c.fetchone()
     stream = row["path"]
     icon = row["icon"]
