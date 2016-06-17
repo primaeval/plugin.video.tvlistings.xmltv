@@ -180,7 +180,7 @@ def channel_remap():
         item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         items.append(item)
     c.close()
-    sorted_items = sorted(items, key=lambda item: item['label'])
+    sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
     return sorted_items
 
 
