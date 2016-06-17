@@ -396,6 +396,22 @@ def choose_channel(channel_id,channel,path):
     add_channel(channel_id,path,'','false')
 
 
+@plugin.route('/play_channel/<channel_id>/<title>/<start>')
+def play_channel(channel_id,title,start):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM channels WHERE id=?", [channel_id.decode("utf8")])
+    row = c.fetchone()
+    channel_path = row["path"]
+    method = row["play_method"]
+    plugin.set_setting('playing_channel',channel_id)
+    plugin.set_setting('playing_title',title)
+    plugin.set_setting('playing_start',start)
+    if method == "not_playable":
+        xbmc.executebuiltin('Container.Update("%s")' % channel_path)
+    else:
+        xbmc.executebuiltin('PlayMedia(%s)' % channel_path)
+
 
 @plugin.route('/stop_playing/<channel_id>/<title>/<start>')
 def stop_playing(channel_id,title,start):
@@ -449,6 +465,7 @@ def clear_reminders():
     conn.close()
 
 
+@plugin.route('/refresh_reminders')
 def refresh_reminders():
     try:
         conn = get_conn()
@@ -469,17 +486,16 @@ def refresh_reminders():
             channel_id = row['channel']
             start = row['start']
             stop = row['stop']
-            path = channels[channel_id]
+            title = row['title']
             t = datetime.fromtimestamp(float(start)) - datetime.now()
             timeToNotification = ((t.days * 86400) + t.seconds) / 60
-            xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(plugin://plugin.video.tvlistings.xmltv/play_channel/%s),%d,False)' %
-                (channel_id+title+str(start), channel_id, timeToNotification - int(plugin.get_setting('remind_before'))))
-
+            command = 'AlarmClock(%s-start,PlayMedia(plugin://plugin.video.tvlistings.xmltv/play_channel/%s/%s/%s),%d,False)' % (channel_id+title+str(start), channel_id, title, start, timeToNotification - int(plugin.get_setting('remind_before')))
+            xbmc.executebuiltin(command.encode("utf8"))
             if plugin.get_setting('watch_and_stop') == 'true':
                 t = datetime.fromtimestamp(float(stop)) - datetime.now()
                 timeToNotification = ((t.days * 86400) + t.seconds) / 60
-                xbmc.executebuiltin('AlarmClock(%s-stop,PlayMedia(plugin://plugin.video.tvlistings.xmltv/stop_playing),%d,True)' %
-                    (channel_id+title+str(start), timeToNotification + int(plugin.get_setting('remind_after'))))
+                command = 'AlarmClock(%s-stop,PlayMedia(plugin://plugin.video.tvlistings.xmltv/stop_playing/%s/%s/%s),%d,True)' % (channel_id+title+str(start), channel_id, title, start, timeToNotification + int(plugin.get_setting('remind_after')))
+                xbmc.executebuiltin(command.encode("utf8"))
 
         conn.commit()
         conn.close()
@@ -509,14 +525,14 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     t = datetime.fromtimestamp(float(start)) - datetime.now()
     timeToNotification = ((t.days * 86400) + t.seconds) / 60
     xbmc.executebuiltin('AlarmClock(%s-start,PlayMedia(plugin://plugin.video.tvlistings.xmltv/play_channel/%s/%s/%s),%d,False)' %
-        (channel_id+title+str(start), channel_id,title,str(start), timeToNotification - int(plugin.get_setting('remind_before'))))
+        (channel_id+title+str(start), channel_id, title, start, timeToNotification - int(plugin.get_setting('remind_before'))))
 
     #TODO check for overlapping times
     if plugin.get_setting('watch_and_stop') == 'true':
         t = datetime.fromtimestamp(float(stop)) - datetime.now()
         timeToNotification = ((t.days * 86400) + t.seconds) / 60
         xbmc.executebuiltin('AlarmClock(%s-stop,PlayMedia(plugin://plugin.video.tvlistings.xmltv/stop_playing/%s/%s/%s),%d,True)' %
-            (channel_id+title+str(start), channel_id,title,str(start), timeToNotification + int(plugin.get_setting('remind_after'))))
+            (channel_id+title+str(start), channel_id, title, start, timeToNotification + int(plugin.get_setting('remind_after'))))
 
     conn = get_conn()
     c = conn.cursor()
@@ -574,7 +590,6 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     if tvdb_id:
         if season and episode:
             meta_url = "plugin://plugin.video.meta/tv/play/%s/%s/%s/%s" % (tvdb_id,season,episode,'select')
-            log(meta_url)
             items.append({
             'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%sE%s[/B][/COLOR] [COLOR green][B]Meta episode[/B][/COLOR]' % (title,season,episode),
             'path': meta_url,
@@ -1871,8 +1886,6 @@ def add_defaults(addon,path,addon_name):
         response = RPC.files.get_directory(media="video", directory=path, properties=["thumbnail"])
     except:
          return
-    log2(response)
-
     links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
     addon = xbmcaddon.Addon(addon)
     name = addon.getAddonInfo('name')
