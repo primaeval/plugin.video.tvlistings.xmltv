@@ -50,7 +50,7 @@ def clear_channels():
     conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
     conn.execute('DROP TABLE IF EXISTS addons')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
     conn.commit()
     conn.close()
 
@@ -339,10 +339,10 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
     channel_path = row["path"]
 
     c.execute('SELECT * FROM addons WHERE addon=?', [addon_id])
-    streams = dict([row["name"],[row["path"], row["icon"]]] for row in c)
+    streams = dict([row["path"],[row["name"], row["icon"]]] for row in c)
 
-    for stream_name in sorted(streams):
-        (path,icon) = streams[stream_name]
+    for path in sorted(streams):
+        (stream_name,icon) = streams[path]
         if channel_path == path:
             label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         else:
@@ -356,7 +356,21 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
         'is_playable': False,
         }
         items.append(item)
-    return items
+
+    sorted_items = sorted(items, key=lambda item: item['label'])
+    return sorted_items
+
+
+@plugin.route('/rename_shortcut/<addon_id>/<stream_name>/<path>')
+def rename_shortcut(addon_id,stream_name,path):
+    dialog = xbmcgui.Dialog()
+    new_stream_name = dialog.input('Enter new Shortcut Name', stream_name, type=xbmcgui.INPUT_ALPHANUM)
+    if not new_stream_name:
+        return
+    path = urllib.unquote(path)
+    conn = get_conn()
+    conn.execute('UPDATE addons SET name=? WHERE path=? AND addon=?', [new_stream_name,path,addon_id])
+    conn.commit()
 
 
 @plugin.route('/reset_channel/<channel_id>')
@@ -787,7 +801,7 @@ def channel(channel_id,channel_name):
         'thumbnail':icon,
         'is_playable':False}
         items.append(item)
-    
+
     item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Choose Shortcut'),
         'path': plugin.url_for(channel_remap_all, channel_id=channel_id,channel_name=channel_name),
         'thumbnail':icon,
@@ -885,19 +899,21 @@ def streams(addon_id):
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT * FROM addons WHERE addon=?', [addon_id])
-    streams = dict([row["name"],[row["path"], row["icon"]]] for row in c)
+    streams = dict([row["path"],[row["name"], row["icon"]]] for row in c)
 
-    for stream_name in sorted(streams):
-        (path,icon) = streams[stream_name]
+    for path in sorted(streams):
+        (stream_name,icon) = streams[path]
         item = {
         'label': '[COLOR yellow][B]%s[/B][/COLOR]' % (stream_name),
-        'path': plugin.url_for(stream_play, addon_id=addon_id, stream_name=stream_name.encode("utf8")),
+        'path': plugin.url_for(stream_play, addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
         }
         items.append(item)
-    return items
+
+    sorted_items = sorted(items, key=lambda item: item['label'])
+    return sorted_items
 
 
 
@@ -968,10 +984,10 @@ def set_addon_method(addon_id,stream_name,method):
     conn = get_conn()
     conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name.decode("utf8")])
     conn.commit()
-    
 
-@plugin.route('/stream_play/<addon_id>/<stream_name>')
-def stream_play(addon_id,stream_name):
+
+@plugin.route('/stream_play/<addon_id>/<stream_name>/<path>')
+def stream_play(addon_id,stream_name,path):
     global big_list_view
     big_list_view = True
     addon = xbmcaddon.Addon(addon_id)
@@ -1022,6 +1038,15 @@ def stream_play(addon_id,stream_name):
     item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, alternative_color,'Set Shortcut Play Method = Alternative Player'),
     'path': plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='not_playable'),
+    'thumbnail': icon,
+    'icon': icon,
+    'is_playable': False,
+    }
+    items.append(item)
+
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, 'red','Rename Shortcut'),
+    'path': plugin.url_for(rename_shortcut, addon_id=addon_id, stream_name=stream_name, path=urllib.quote(path,safe='')),
     'thumbnail': icon,
     'icon': icon,
     'is_playable': False,
@@ -1080,7 +1105,7 @@ def store_channels():
     conn.row_factory = sqlite3.Row
 
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
 
     items = []
 
@@ -1228,7 +1253,7 @@ def xml_channels():
     conn.row_factory = sqlite3.Row
     conn.execute('DROP TABLE IF EXISTS programmes')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name))')
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
     conn.execute(
     'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
     conn.execute(
@@ -1837,20 +1862,22 @@ def browse_path(addon,path):
     files = response["files"]
 
     dirs = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "directory"])
-    links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
-    thumbnails = dict([[f["label"], f["thumbnail"]] for f in files])
+    links = dict([[f["file"], f["label"]] for f in files if f["filetype"] == "file"])
+    thumbnails = dict([[f["file"], f["thumbnail"]] for f in files])
 
-    items = []
+    top_items = []
     item = {'label':'[COLOR red][B]Add Folder to Addon Shortcuts[/B][/COLOR]',
     'path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False, method="playable"),
     'thumbnail':addon_icon,
     'is_playable':False}
-    items.append(item)
+    top_items.append(item)
     item = {'label':'[COLOR green][B]Add Folder to Addon Shortcuts with Alternative Play Method[/B][/COLOR]',
     'path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False, method="not_playable"),
     'thumbnail':addon_icon,
     'is_playable':False}
-    items.append(item)
+    top_items.append(item)
+
+    items = []
 
     for dir in sorted(dirs):
         path = dirs[dir]
@@ -1859,14 +1886,17 @@ def browse_path(addon,path):
         'thumbnail':addon_icon,
         'is_playable':False}
         items.append(item)
-    for link in sorted(links):
-        path = links[link]
-        item = {'label':re.sub('\[.*?\]','',link).encode("utf8"),
-        'path':plugin.url_for('activate_play', label=re.sub('\[.*?\]','',link).encode("utf8"), path=path, icon=thumbnails[link]),
+    for path in sorted(links):
+        label = links[path]
+        icon = thumbnails[path]
+        item = {'label':re.sub('\[.*?\]','',label).encode("utf8"),
+        'path':plugin.url_for('activate_play', label=re.sub('\[.*?\]','',label).encode("utf8"), path=path, icon=icon),
         'is_playable':False,
-        'thumbnail':thumbnails[link]}
+        'thumbnail':icon}
         items.append(item)
 
+    sorted_items = sorted(items, key=lambda item: item['label'])
+    items = top_items + sorted_items
     return items
 
 
@@ -1878,13 +1908,16 @@ def add_addon_channels(addon,path,addon_name,method):
          return
 
     files = response["files"]
-    links = dict([[f["label"], f["file"]] for f in files if f["filetype"] == "file"])
-    thumbnails = dict([[f["label"], f["thumbnail"]] for f in files])
+    labels = dict([[f["file"], f["label"]] for f in files if f["filetype"] == "file"])
+    thumbnails = dict([[f["file"], f["thumbnail"]] for f in files])
 
     conn = get_conn()
 
-    for link in sorted(links):
-        conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [addon, re.sub('\[.*?\]','',link), links[link], method, thumbnails[link]])
+    for file in sorted(labels):
+        label = labels[file]
+        label = re.sub('\[.*?\]','',label)
+        icon = thumbnails[file]
+        conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [addon, label, file, method, icon])
 
     conn.commit()
     conn.close()
