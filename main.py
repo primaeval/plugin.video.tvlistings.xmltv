@@ -763,18 +763,20 @@ def channel(channel_id,channel_name):
             'thumbnail':icon,
             'is_playable':False}
         items.append(item)
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Set Default Play Method'),
-        'path': plugin.url_for('channel_play', channel_id=channel_id),
-        'thumbnail':icon,
-        'is_playable':False}
-        items.append(item)
-        
     item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Search'),
         'path': plugin.url_for(search_addons,channel_name=channel_name),
         'thumbnail':icon,
         'is_playable':False}
     items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Choose New Default Shortcut'),
+
+    if path:
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Default Play Method'),
+        'path': plugin.url_for('channel_play', channel_id=channel_id),
+        'thumbnail':icon,
+        'is_playable':False}
+        items.append(item)
+    
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Default Shortcut'),
         'path': plugin.url_for(channel_remap_all, channel_id=channel_id,channel_name=channel_name),
         'thumbnail':icon,
         'is_playable':False}
