@@ -1,4 +1,4 @@
-Version 0.1.0
+Version 0.1.1
 - WARNING: big changes internally!
 - I recommend you delete your addon_data folder and start again!
 
