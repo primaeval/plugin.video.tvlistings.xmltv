@@ -247,9 +247,10 @@ def search_addons(channel_name):
         icon = addon.getAddonInfo('icon')
         addon_name = addon.getAddonInfo('name')
         label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+        log(addon_id)
         item = {
         'label': label,
-        'path': plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8")),
+        'path': plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path),
         'thumbnail': icon,
         'icon': icon,
         'is_playable': False,
@@ -998,9 +999,8 @@ def stream_play(addon_id,stream_name,path):
     items = []
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT * FROM addons WHERE addon=? AND name=?', [addon_id,stream_name.decode("utf8")])
+    c.execute('SELECT * FROM addons WHERE addon=? AND path=?', [addon_id,path])
     row = c.fetchone()
-    stream = row["path"]
     icon = row["icon"]
     method = row["play_method"]
 
@@ -1013,7 +1013,7 @@ def stream_play(addon_id,stream_name,path):
 
     item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, default_color, 'Default Player'),
-    'path': stream,
+    'path': path,
     'thumbnail': icon,
     'icon': icon,
     'is_playable': True,
@@ -1021,7 +1021,7 @@ def stream_play(addon_id,stream_name,path):
     items.append(item)
     item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, alternative_color, 'Alternative Player'),
-    'path': stream,
+    'path': path,
     'thumbnail': icon,
     'icon': icon,
     'is_playable': False,
