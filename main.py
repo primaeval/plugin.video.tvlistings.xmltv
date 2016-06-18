@@ -1682,6 +1682,7 @@ def listing(channel_id,channel_name):
         episode = row['episode']
         categories = row['categories']
 
+        now = datetime.now()
         dt = datetime.fromtimestamp(start)
         day = dt.day
         if day != last_day:
@@ -1719,6 +1720,9 @@ def listing(channel_id,channel_name):
                 label = "%s %s %s" % (ttime,title_format,plot)
             else:
                 label = "%s %s" % (ttime,title_format)
+
+        if dt < now:
+            label = re.sub(r'\[COLOR orange\]','[COLOR grey]',label)
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
