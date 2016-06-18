@@ -52,6 +52,9 @@ def clear_addon_paths():
     #'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
     conn.commit()
     create_database_tables()
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Clear Addon Paths")
+
 
 @plugin.route('/clear_channels')
 def clear_channels():
@@ -63,6 +66,8 @@ def clear_channels():
     #'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
     conn.commit()
     create_database_tables()
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Clear Channels")
 
 
 @plugin.route('/add_channel/<channel_name>/<path>/<icon>/<ask>')
@@ -128,7 +133,8 @@ def export_channels():
                 path = ''
             write_str = "%s=%s\n" % (channel_name,path)
             f.write(write_str.encode("utf8"))
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Export Channels")
     c.close()
     return items
 
@@ -500,7 +506,8 @@ def clear_reminders():
     c.execute('DELETE FROM watch')
     conn.commit()
     conn.close()
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Clear Reminders")
 
 @plugin.route('/refresh_reminders')
 def refresh_reminders():
@@ -538,6 +545,8 @@ def refresh_reminders():
         conn.close()
     except:
         pass
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Refresh Reminders")
 
 
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
@@ -556,6 +565,8 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     c.execute("INSERT OR REPLACE INTO remind(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Remind")
 
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def watch(channel_id,channel_name,title,season,episode,start,stop):
@@ -578,7 +589,8 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     c.execute("INSERT OR REPLACE INTO watch(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Watch")
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
@@ -594,7 +606,8 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
 
     conn.commit()
     conn.close()
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Cancel Remind")
 
 @plugin.route('/cancel_watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
@@ -611,7 +624,8 @@ def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
     c.execute('DELETE FROM watch WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     conn.commit()
     conn.close()
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Cancel Watch")
 
 @plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def play(channel_id,channel_name,title,season,episode,start,stop):
@@ -898,7 +912,8 @@ def addon_streams_to_channels(addon_id):
 
     conn.commit()
     conn.close()
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Addon Shortcuts to Default Channels")
 
 @plugin.route('/streams/<addon_id>')
 def streams(addon_id):
@@ -999,6 +1014,7 @@ def set_channel_method(channel_id,method):
     conn.execute('UPDATE channels SET play_method=? WHERE id=?', [method,channel_id.decode("utf8")])
     conn.commit()
     xbmc.executebuiltin('Container.Refresh')
+
 
 @plugin.route('/set_addon_method/<addon_id>/<stream_name>/<method>')
 def set_addon_method(addon_id,stream_name,method):
@@ -1176,6 +1192,8 @@ def store_channels():
         pass
     conn.commit()
     conn.close()
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Load ini File")
 
 
 def xml2utc(xml):
@@ -1413,7 +1431,8 @@ def xml_channels():
     conn.commit()
     conn.close()
     plugin.set_setting('xmltv_updating', 'false')
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Load xmltv File")
 
 
 @plugin.route('/channels')
@@ -1840,6 +1859,7 @@ def nuke():
     if os.path.exists( TARGETFOLDER ):
             shutil.rmtree( TARGETFOLDER , ignore_errors=True)
 
+    dialog.notification("TV Listings (xmltv)","Done: Everything Deleted!")
 
 def urlencode_path(path):
     from urlparse import urlparse, parse_qs, urlunparse
@@ -1930,16 +1950,16 @@ def browse_path(addon,path):
     return items
 
 
+@plugin.route('/reload_addon_paths')
 def reload_addon_paths():
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT * FROM addon_paths')
-    for row in c:
-        addon = row["addon"]
-        name = row["name"]
-        path = row["path"]
-        method = row["play_method"]
-        add_addon_channels(addon,path,name,method)
+    addon_paths = [(row["addon"],row["path"],row["name"],row["play_method"]) for row in c]
+    for addon_path in addon_paths:
+        add_addon_channels(addon_path[0],addon_path[1],addon_path[2],addon_path[3])
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Addon Paths Refreshed")
 
 
 
@@ -1965,7 +1985,8 @@ def add_addon_channels(addon,path,addon_name,method):
 
     conn.commit()
     conn.close()
-
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Addon Path Added")
 
 
 @plugin.route('/add_defaults/<addon>/<path>/<addon_name>')
