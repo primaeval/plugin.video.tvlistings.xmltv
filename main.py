@@ -1724,11 +1724,16 @@ def listing(channel_id,channel_name):
             else:
                 title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
 
+        if mode == 'past':
+            channel_format = "[COLOR grey]%s[/COLOR]" % channel_name
+        else:
+            channel_format = "[COLOR yellow][B]%s[/B][/COLOR]" % channel_name
+
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s" % (channel_name,ttime,title_format,plot)
+                label = "%s %s %s %s" % (channel_format,ttime,title_format,plot)
             else:
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s" % (channel_name,ttime,title_format)
+                label = "%s %s %s" % (channel_format,ttime,title_format)
         else:
             if plugin.get_setting('show_plot') == 'true':
                 label = "%s %s %s" % (ttime,title_format,plot)
@@ -1824,11 +1829,16 @@ def search(programme_name):
             if start in watch[channel_id]:
                 title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
 
+        if mode == 'past':
+            channel_format = "[COLOR grey]%s[/COLOR]" % channel_name
+        else:
+            channel_format = "[COLOR yellow][B]%s[/B][/COLOR]" % channel_name
+
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s" % (channel_name,ttime,title_format,plot)
+                label = "%s %s %s %s" % (channel_format,ttime,title_format,plot)
             else:
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s" % (channel_name,ttime,title_format)
+                label = "%s %s %s" % (channel_format,ttime,title_format)
         else:
             if plugin.get_setting('show_plot') == 'true':
                 label = "%s %s %s" % (ttime,title_format,plot)
@@ -1930,11 +1940,16 @@ def reminders():
                 else:
                     title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
 
+        if mode == 'past':
+            channel_format = "[COLOR grey]%s[/COLOR]" % channel_name
+        else:
+            channel_format = "[COLOR yellow][B]%s[/B][/COLOR]" % channel_name
+
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s" % (channel_name,ttime,title_format,plot)
+                label = "%s %s %s %s" % (channel_format,ttime,title_format,plot)
             else:
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s" % (channel_name,ttime,title_format)
+                label = "%s %s %s" % (channel_format,ttime,title_format)
         else:
             if plugin.get_setting('show_plot') == 'true':
                 label = "%s %s %s" % (ttime,title_format,plot)
