@@ -886,7 +886,8 @@ def channel(channel_id,channel_name):
 
     label = "[COLOR yellow]%s[/COLOR] [COLOR green]%s[/COLOR] [COLOR red]settings[/COLOR]" % (channel_name,addon_name)
     item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
-    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
+    #item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
+    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
     items.append(item)
 
     return items
@@ -1684,6 +1685,13 @@ def listing(channel_id,channel_name):
 
         now = datetime.now()
         dt = datetime.fromtimestamp(start)
+        dt_stop = datetime.fromtimestamp(stop)
+        mode = 'future'
+        if dt < now:
+            mode = 'past'
+            if dt_stop > now:
+                mode = 'present'
+
         day = dt.day
         if day != last_day:
             last_day = day
@@ -1701,14 +1709,20 @@ def listing(channel_id,channel_name):
             title = "%s (%s)" % (title,date)
         if sub_title:
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
-        ttime = "%02d:%02d" % (dt.hour,dt.minute)
+        if mode == "present":
+            ttime = "[COLOR white][B]%02d:%02d[/B][/COLOR]" % (dt.hour,dt.minute)
+        else:
+            ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
         if start in watch:
             title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
         elif start in remind:
             title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
         else:
-            title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+            if mode == 'past':
+                title_format = "[COLOR grey][B]%s[/B][/COLOR]" % title
+            else:
+                title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
@@ -1720,9 +1734,6 @@ def listing(channel_id,channel_name):
                 label = "%s %s %s" % (ttime,title_format,plot)
             else:
                 label = "%s %s" % (ttime,title_format)
-
-        if dt < now:
-            label = re.sub(r'\[COLOR orange\]','[COLOR grey]',label)
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
@@ -1741,7 +1752,7 @@ def search(programme_name):
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
     channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
-
+    calendar_icon = get_icon_path('calendar')
     c.execute('SELECT * FROM remind ORDER BY channel, start')
     remind = {}
     for row in c:
@@ -1771,12 +1782,23 @@ def search(programme_name):
         episode = row['episode']
         categories = row['categories']
 
+        now = datetime.now()
         dt = datetime.fromtimestamp(start)
+        dt_stop = datetime.fromtimestamp(stop)
+        mode = 'future'
+        if dt < now:
+            mode = 'past'
+            if dt_stop > now:
+                mode = 'present'
+
         day = dt.day
         if day != last_day:
             last_day = day
-            label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
-            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
+            label = "[COLOR white][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
+            items.append({'label':label,
+            'is_playable':True,
+            'thumbnail': calendar_icon,
+            'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
 
         if not season:
             season = '0'
@@ -1786,9 +1808,15 @@ def search(programme_name):
             title = "%s (%s)" % (title,date)
         if sub_title:
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
-        ttime = "%02d:%02d" % (dt.hour,dt.minute)
+        if mode == "present":
+            ttime = "[COLOR white][B]%02d:%02d[/B][/COLOR]" % (dt.hour,dt.minute)
+        else:
+            ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
-        title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+        if mode == 'past':
+            title_format = "[COLOR grey][B]%s[/B][/COLOR]" % title
+        else:
+            title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
         if channel_id in remind:
             if start in remind[channel_id]:
                 title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
@@ -1807,6 +1835,7 @@ def search(programme_name):
             else:
                 label = "%s %s" % (ttime,title_format)
 
+
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
         item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
@@ -1823,7 +1852,7 @@ def reminders():
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
     channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
-
+    calendar_icon = get_icon_path('calendar')
     c.execute('SELECT * FROM remind ORDER BY channel, start')
     remind = {}
     for row in c:
@@ -1853,12 +1882,23 @@ def reminders():
         episode = row['episode']
         categories = row['categories']
 
+        now = datetime.now()
         dt = datetime.fromtimestamp(start)
+        dt_stop = datetime.fromtimestamp(stop)
+        mode = 'future'
+        if dt < now:
+            mode = 'past'
+            if dt_stop > now:
+                mode = 'present'
+
         day = dt.day
         if day != last_day:
             last_day = day
-            label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
-            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
+            label = "[COLOR white][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
+            items.append({'label':label,
+            'is_playable':True,
+            'thumbnail': calendar_icon,
+            'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
 
         if not season:
             season = '0'
@@ -1868,15 +1908,27 @@ def reminders():
             title = "%s (%s)" % (title,date)
         if sub_title:
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
-        ttime = "%02d:%02d" % (dt.hour,dt.minute)
+        if mode == "present":
+            ttime = "[COLOR white][B]%02d:%02d[/B][/COLOR]" % (dt.hour,dt.minute)
+        else:
+            ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
-        title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
+        if mode == 'past':
+            title_format = "[COLOR grey][B]%s[/B][/COLOR]" % title
+        else:
+            title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
         if channel_id in remind:
             if start in remind[channel_id]:
-                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
+                if mode == 'past':
+                    title_format = "[COLOR red]%s[/COLOR]" % title
+                else:
+                    title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
         if channel_id in watch:
             if start in watch[channel_id]:
-                title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
+                if mode == 'past':
+                    title_format = "[COLOR blue]%s[/COLOR]" % title
+                else:
+                    title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':

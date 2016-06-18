@@ -28,4 +28,4 @@ xmltv TV Listings with catchup playback via Meta4Kodi and live playback via addo
 ## License
 * You owe me half of any money you make from this programme.
 * If you use it for something illegal don't include my name.
-* The source link to github must be included in any redistribution repo or advertising link.
+* The source links to github must be included in any redistribution repo or advertising link.
