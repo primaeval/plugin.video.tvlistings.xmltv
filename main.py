@@ -755,6 +755,18 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             except:
                 pass
 
+    try:
+        addon = xbmcaddon.Addon('plugin.program.super.favourites')
+        sf_icon =  addon.getAddonInfo('icon')
+        if addon:
+            items.append({
+            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]iSearch[/B][/COLOR]' % (title),
+            'path':"plugin://plugin.program.super.favourites?mode=0&keyword=%s" % (urllib.quote_plus(title)),
+            'thumbnail': sf_icon,
+            'icon': sf_icon,
+            })
+    except:
+        pass
 
     conn = get_conn()
     c = conn.cursor()
