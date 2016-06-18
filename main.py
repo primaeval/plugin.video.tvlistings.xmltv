@@ -827,22 +827,8 @@ def channel(channel_id,channel_name):
         'is_playable':False}
     items.append(item)
 
-    if path:
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Set Play Method'),
-        'path': plugin.url_for('channel_play', channel_id=channel_id),
-        'thumbnail':icon,
-        'is_playable':False}
-        items.append(item)
-
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Choose Shortcut'),
-        'path': plugin.url_for(channel_remap_all, channel_id=channel_id,channel_name=channel_name),
-        'thumbnail':icon,
-        'is_playable':False}
-    items.append(item)
-
     try:
-        addon = xbmcaddon.Addon('plugin.video.meta')
-        meta_icon = addon.getAddonInfo('icon')
+        meta_icon = xbmcaddon.Addon('plugin.video.meta').getAddonInfo('icon')
         meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
         items.append({
         'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
@@ -853,6 +839,26 @@ def channel(channel_id,channel_name):
          })
     except:
         pass
+
+    if path:
+        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Play Method'),
+        'path': plugin.url_for('channel_play', channel_id=channel_id),
+        'thumbnail':icon,
+        'is_playable':False}
+        items.append(item)
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT addon FROM addons WHERE path=?', [path])
+    row = c.fetchone()
+    addon = row["addon"]
+    addon_name = xbmcaddon.Addon(addon).getAddonInfo('name')
+    addon_icon = xbmcaddon.Addon(addon).getAddonInfo('icon')
+
+    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR red][B]Addon Shortcut[/B][/COLOR]" % (channel_name,addon_name)
+    item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
+    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+    items.append(item)
+
     return items
 
 
@@ -1004,6 +1010,19 @@ def channel_play(channel_id):
     'icon': icon,
     'is_playable': False,
     }
+    items.append(item)
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT addon FROM addons WHERE path=?', [path])
+    row = c.fetchone()
+    addon = row["addon"]
+    addon_name = xbmcaddon.Addon(addon).getAddonInfo('name')
+    addon_icon = xbmcaddon.Addon(addon).getAddonInfo('icon')
+
+    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR red][B]Addon Shortcut[/B][/COLOR]" % (channel_name,addon_name)
+    item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
+    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
     items.append(item)
 
     return items
