@@ -577,6 +577,8 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     conn.close()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Remind")
+    xbmc.executebuiltin('Container.Refresh')
+
 
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def watch(channel_id,channel_name,title,season,episode,start,stop):
@@ -601,6 +603,7 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     conn.close()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Watch")
+    xbmc.executebuiltin('Container.Refresh')
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
@@ -618,6 +621,8 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
     conn.close()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Cancel Remind")
+    xbmc.executebuiltin('Container.Refresh')
+
 
 @plugin.route('/cancel_watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
@@ -636,6 +641,8 @@ def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
     conn.close()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Cancel Watch")
+    xbmc.executebuiltin('Container.Refresh')
+
 
 @plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def play(channel_id,channel_name,title,season,episode,start,stop):
@@ -684,7 +691,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             sick_icon =  addon.getAddonInfo('icon')
             if addon:
                 items.append({
-                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]SickRage[/B][/COLOR]' % (title),
+                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR yellow][B]SickRage[/B][/COLOR]' % (title),
                 'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                 'thumbnail': sick_icon,
                 'icon': sick_icon,
@@ -710,7 +717,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                 couch_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]CouchPotato[/B][/COLOR]' % (title),
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR yellow][B]CouchPotato[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.couchpotato_manager/movies/add/?title=%s" % (title),
                     'thumbnail': couch_icon,
                     'icon': couch_icon,
@@ -740,26 +747,39 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                 sick_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]SickRage[/B][/COLOR]' % (title),
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR yellow][B]SickRage[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                     'thumbnail': sick_icon,
                     'icon': sick_icon,
                     })
             except:
                 pass
+
+
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM remind WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
+    remind = [row['start'] for row in c]
+    log(remind)
+    log(start)
+    c.execute('SELECT * FROM watch WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
+    watch = [row['start'] for row in c]
+
     clock_icon = get_icon_path('alarm')
-    items.append({
-    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Remind[/B][/COLOR]' % (title),
-    'path':plugin.url_for('remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
-    'thumbnail': clock_icon,
-    'icon': clock_icon,
-    })
-    items.append({
-    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Cancel[/B][/COLOR]' % (title),
-    'path':plugin.url_for('cancel_remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
-    'thumbnail': clock_icon,
-    'icon': clock_icon,
-    })
+    if not int(start) in remind:
+        items.append({
+        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Remind[/B][/COLOR]' % (title),
+        'path':plugin.url_for('remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
+        'thumbnail': clock_icon,
+        'icon': clock_icon,
+        })
+    else:
+        items.append({
+        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Cancel Remind[/B][/COLOR]' % (title),
+        'path':plugin.url_for('cancel_remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
+        'thumbnail': clock_icon,
+        'icon': clock_icon,
+        })
 
     conn = get_conn()
     c = conn.cursor()
@@ -767,18 +787,20 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     row = c.fetchone()
     path = row["path"]
     if path:
-        items.append({
-        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Watch[/B][/COLOR]' % (title),
-        'path':plugin.url_for('watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
-        'thumbnail': clock_icon,
-        'icon': clock_icon,
-        })
-        items.append({
-        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Cancel[/B][/COLOR]' % (title),
-        'path':plugin.url_for('cancel_watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
-        'thumbnail': clock_icon,
-        'icon': clock_icon,
-        })
+        if not int(start) in watch:
+            items.append({
+            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Watch[/B][/COLOR]' % (title),
+            'path':plugin.url_for('watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
+            'thumbnail': clock_icon,
+            'icon': clock_icon,
+            })
+        else:
+            items.append({
+            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Cancel Watch[/B][/COLOR]' % (title),
+            'path':plugin.url_for('cancel_watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
+            'thumbnail': clock_icon,
+            'icon': clock_icon,
+            })
 
     items.extend(channel_items)
     return items
@@ -1633,6 +1655,9 @@ def now_next():
 def listing(channel_id,channel_name):
     global big_list_view
     big_list_view = True
+
+    calendar_icon = get_icon_path('calendar')
+
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
@@ -1661,8 +1686,11 @@ def listing(channel_id,channel_name):
         day = dt.day
         if day != last_day:
             last_day = day
-            label = "[COLOR red][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
-            items.append({'label':label,'is_playable':True,'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
+            label = "[COLOR white][B]%s[/B][/COLOR]" % (dt.strftime("%A %d/%m/%y"))
+            items.append({'label':label,
+            'is_playable':True,
+            'thumbnail': calendar_icon,
+            'path':plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))})
 
         if not season:
             season = '0'
@@ -1673,7 +1701,6 @@ def listing(channel_id,channel_name):
         if sub_title:
             plot = "[B]%s[/B]: %s" % (sub_title,plot)
         ttime = "%02d:%02d" % (dt.hour,dt.minute)
-
 
         if start in watch:
             title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
@@ -2078,19 +2105,19 @@ def index():
         'path': plugin.url_for('reminders'),
     },
     {
-        'label': '[COLOR yellow][B]Channel Player[/B][/COLOR]',
+        'label': '[COLOR yellow]Channel Player[/COLOR]',
         'path': plugin.url_for('channel_list'),
     },
     {
-        'label': '[COLOR red][B]Default Channels[/B][/COLOR]',
+        'label': '[COLOR red]Default Channels[/COLOR]',
         'path': plugin.url_for('channel_remap'),
     },
     {
-        'label': '[COLOR green][B]Addon Shortcuts[/B][/COLOR]',
+        'label': '[COLOR green]Addon Shortcuts[/COLOR]',
         'path': plugin.url_for('addon_streams'),
     },
     {
-        'label': '[COLOR grey][B]Addon Browser[/B][/COLOR]',
+        'label': '[COLOR grey]Addon Browser[/COLOR]',
         'path': plugin.url_for('browse_addons'),
     },
     ]
