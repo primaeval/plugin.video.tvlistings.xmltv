@@ -194,7 +194,7 @@ def channel_remap():
         else:
             label = "[COLOR yellow][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)###
+        item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
         items.append(item)
     c.close()
     sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
@@ -338,7 +338,7 @@ def channel_remap_all(channel_id,channel_name,channel_play):
     log(channel_play)
     if channel_play == "True":
         if channel_path:
-            item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Play Method'),
+            item = {'label':"[COLOR yellow]%s[/COLOR] [COLOR red]%s[/COLOR]" % (channel_name,'Play Method'),
             'path': plugin.url_for('channel_play', channel_id=channel_id,channel_play=False),
             'thumbnail':channel_icon,
             'is_playable':False}
@@ -1004,7 +1004,7 @@ def channel_play(channel_id,channel_play):
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, default_color,'Set Channel Play Method = Default Play'),
+    'label': '[COLOR %s]%s[/COLOR]' % (default_color,'Set Default Play'),
     'path': plugin.url_for(set_channel_method, channel_id=channel_id, method='playable'),
     'thumbnail': icon,
     'icon': icon,
@@ -1012,7 +1012,7 @@ def channel_play(channel_id,channel_play):
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, alternative_color,'Set Channel Play Method = Alternative Play'),
+    'label': '[COLOR %s]%s[/COLOR]' % (alternative_color,'Set Alternative Play'),
     'path': plugin.url_for(set_channel_method, channel_id=channel_id, method='not_playable'),
     'thumbnail': icon,
     'icon': icon,
@@ -1091,7 +1091,7 @@ def stream_play(addon_id,stream_name,path):
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, default_color,'Set Shortcut Play Method = Default Play'),
+    'label': '[COLOR %s]%s[/COLOR]' % (default_color,'Set Default Play'),
     'path': plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='playable'),
     'thumbnail': icon,
     'icon': icon,
@@ -1099,7 +1099,7 @@ def stream_play(addon_id,stream_name,path):
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, alternative_color,'Set Shortcut Play Method = Alternative Play'),
+    'label': '[COLOR %s]%s[/COLOR]' % (alternative_color,'Set Alternative Play'),
     'path': plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='not_playable'),
     'thumbnail': icon,
     'icon': icon,
@@ -1108,7 +1108,7 @@ def stream_play(addon_id,stream_name,path):
     items.append(item)
 
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, 'red','Rename Shortcut'),
+    'label': '[COLOR %s]%s[/COLOR]' % ('red','Rename Shortcut'),
     'path': plugin.url_for(rename_shortcut, addon_id=addon_id, stream_name=stream_name, path=urllib.quote(path,safe='')),
     'thumbnail': icon,
     'icon': icon,
