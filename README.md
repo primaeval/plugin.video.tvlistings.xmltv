@@ -18,5 +18,14 @@ xmltv TV Listings with catchup playback via Meta4Kodi and live playback via addo
 ## Notes
 * Try using WebGrab++ to create smaller xmltv files.
 
-## Disclaimer
+## Source
+* addon: https://github.com/primaeval/plugin.video.tvlistings.xmltv
+* repo: https://github.com/primaeval/repository.primaeval
 
+## Disclaimer
+* Make sure you are legally allowed to watch any stream or programme you link to.
+
+## License
+* You owe me half of any money you make from this programme.
+* If you use it for something illegal don't include my name.
+* The source link to github must be included in any redistribution repo.

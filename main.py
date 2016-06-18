@@ -575,8 +575,8 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     c.execute("INSERT OR REPLACE INTO remind(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
-    dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Remind")
+    #dialog = xbmcgui.Dialog()
+    #dialog.notification("TV Listings (xmltv)","Done: Remind")
     xbmc.executebuiltin('Container.Refresh')
 
 
@@ -601,8 +601,8 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     c.execute("INSERT OR REPLACE INTO watch(channel ,title , sub_title , start , stop, date, description , series , episode , categories) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
-    dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Watch")
+    #dialog = xbmcgui.Dialog()
+    #dialog.notification("TV Listings (xmltv)","Done: Watch")
     xbmc.executebuiltin('Container.Refresh')
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
@@ -619,8 +619,8 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
 
     conn.commit()
     conn.close()
-    dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Cancel Remind")
+    #dialog = xbmcgui.Dialog()
+    #dialog.notification("TV Listings (xmltv)","Done: Cancel Remind")
     xbmc.executebuiltin('Container.Refresh')
 
 
@@ -639,8 +639,8 @@ def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
     c.execute('DELETE FROM watch WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     conn.commit()
     conn.close()
-    dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Cancel Watch")
+    #dialog = xbmcgui.Dialog()
+    #dialog.notification("TV Listings (xmltv)","Done: Cancel Watch")
     xbmc.executebuiltin('Container.Refresh')
 
 
