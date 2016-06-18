@@ -42,17 +42,28 @@ def get_tvdb_id(name):
         tvdb_id = tvdb_match.group(1)
     return tvdb_id
 
-
+@plugin.route('/clear_addon_paths')
+def clear_addon_paths():
+    conn = get_conn()
+    conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
+    #conn.execute('DROP TABLE IF EXISTS addons')
+    conn.execute('DROP TABLE IF EXISTS addon_paths')
+    #conn.execute(
+    #'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
+    conn.commit()
+    create_database_tables()
 
 @plugin.route('/clear_channels')
 def clear_channels():
     conn = get_conn()
     conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
     conn.execute('DROP TABLE IF EXISTS addons')
-    conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
+    #conn.execute('DROP TABLE IF EXISTS addon_paths')
+    #conn.execute(
+    #'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
     conn.commit()
-    conn.close()
+    create_database_tables()
+
 
 @plugin.route('/add_channel/<channel_name>/<path>/<icon>/<ask>')
 def add_channel(channel_name,path,icon,ask):
@@ -1113,8 +1124,8 @@ def store_channels():
     conn.execute('PRAGMA foreign_keys = ON')
     conn.row_factory = sqlite3.Row
 
-    conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
+    #conn.execute(
+    #'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
 
     items = []
 
@@ -1205,6 +1216,25 @@ class FileWrapper(object):
     def tell(self):
         return self.bytesRead
 
+def create_database_tables():
+    conn = get_conn()
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS addon_paths(addon TEXT, name TEXT, path TEXT, play_method TEXT, PRIMARY KEY (path))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS remind(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
+    conn.execute(
+    'CREATE TABLE IF NOT EXISTS watch(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
+    conn.commit()
+    conn.close()
+
+
 
 def xml_channels():
     try:
@@ -1257,21 +1287,12 @@ def xml_channels():
 
     xbmcvfs.mkdir('special://profile/addon_data/plugin.video.tvlistings.xmltv')
 
+
     conn = get_conn()
     conn.execute('PRAGMA foreign_keys = ON')
     conn.row_factory = sqlite3.Row
     conn.execute('DROP TABLE IF EXISTS programmes')
-    conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
-    conn.execute(
-    'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
-    conn.execute(
-    'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
-    conn.execute(
-    'CREATE TABLE IF NOT EXISTS remind(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
-    conn.execute(
-    'CREATE TABLE IF NOT EXISTS watch(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
-
+    create_database_tables()
     c = conn.cursor()
     c.execute('SELECT id FROM channels')
     old_channel_ids = [row["id"] for row in c]
@@ -1909,6 +1930,19 @@ def browse_path(addon,path):
     return items
 
 
+def reload_addon_paths():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('SELECT * FROM addon_paths')
+    for row in c:
+        addon = row["addon"]
+        name = row["name"]
+        path = row["path"]
+        method = row["play_method"]
+        add_addon_channels(addon,path,name,method)
+
+
+
 @plugin.route('/add_addon_channels/<addon>/<path>/<addon_name>/<method>')
 def add_addon_channels(addon,path,addon_name,method):
     try:
@@ -1921,6 +1955,7 @@ def add_addon_channels(addon,path,addon_name,method):
     thumbnails = dict([[f["file"], f["thumbnail"]] for f in files])
 
     conn = get_conn()
+    conn.execute("INSERT OR IGNORE INTO addon_paths(addon, name, path, play_method) VALUES(?, ?, ?, ?)", [addon, addon_name, path, method])
 
     for file in sorted(labels):
         label = labels[file]
@@ -2015,6 +2050,7 @@ def index():
 
 
 if __name__ == '__main__':
+    create_database_tables()
     xml_channels()
     store_channels()
     plugin.run()
