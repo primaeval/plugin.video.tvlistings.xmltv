@@ -186,8 +186,7 @@ def channel_remap_addons(channel_id,channel_name):
     item = {
     'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
     'path': plugin.url_for(channel_remap_search, channel_id=channel_id,channel_name=channel_name),
-    'thumbnail': icon,
-    'icon': icon,
+    'thumbnail': get_icon_path('search'),
     'is_playable': False,
     }
 
@@ -868,7 +867,7 @@ def channel(channel_id,channel_name):
         addon_name = ''
         addon_icon = icon
 
-    label = "[COLOR yellow]%s[/COLOR] [COLOR green]%s[/COLOR] [COLOR red]Default Channel[/COLOR]" % (channel_name,addon_name)
+    label = "[COLOR yellow]%s[/COLOR] [COLOR green]%s[/COLOR] [COLOR red]Default Shortcut[/COLOR]" % (channel_name,addon_name)
     item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
     item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
     items.append(item)
@@ -891,8 +890,7 @@ def addon_streams():
     item = {
     'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
     'path': plugin.url_for(search_addons, channel_name='none'),
-    'thumbnail': icon,
-    'icon': icon,
+    'thumbnail': get_icon_path('search'),
     'is_playable': False,
     }
 
@@ -933,7 +931,7 @@ def addon_streams_to_channels(addon_id):
     conn.commit()
     conn.close()
     dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Addon Shortcuts to Default Channels")
+    dialog.notification("TV Listings (xmltv)","Done: Addon Shortcuts to Default Shortcuts")
 
 @plugin.route('/streams/<addon_id>')
 def streams(addon_id):
@@ -946,7 +944,7 @@ def streams(addon_id):
         icon = ''
     items = []
 
-    item = {'label':'[COLOR red][B]Use All as Default Channels[/B][/COLOR]',
+    item = {'label':'[COLOR red][B]Use All as Default Shortcuts[/B][/COLOR]',
         'path':plugin.url_for('addon_streams_to_channels', addon_id=addon_id),
         'thumbnail':icon,
         'is_playable':False}
@@ -2165,7 +2163,7 @@ def index():
         'path': plugin.url_for('channel_list'),
     },
     {
-        'label': '[COLOR red]Default Channels[/COLOR]',
+        'label': '[COLOR red]Default Shortcuts[/COLOR]',
         'path': plugin.url_for('channel_remap'),
     },
     {
