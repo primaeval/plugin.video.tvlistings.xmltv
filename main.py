@@ -156,7 +156,7 @@ def channel_list():
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
             #item['path'] = plugin.url_for('activate_play', label=channel_name, path=path)
-            item['path'] = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"))
+            item['path'] = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
             items.append(item)
     c.close()
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -194,7 +194,7 @@ def channel_remap():
         else:
             label = "[COLOR yellow][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
-        item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+        item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)###
         items.append(item)
     c.close()
     sorted_items = sorted(items, key=lambda item: re.sub('\[.*?\]','',item['label']))
@@ -286,28 +286,19 @@ def channel_remap_search(channel_id,channel_name):
     return channel_remap_all(channel_id,channel_name)
 
 
-@plugin.route('/channel_remap_all/<channel_id>/<channel_name>')
-def channel_remap_all(channel_id,channel_name):
+@plugin.route('/channel_remap_all/<channel_id>/<channel_name>/<channel_play>')
+def channel_remap_all(channel_id,channel_name,channel_play):
     global big_list_view
     big_list_view = True
 
     items = []
-
-    img_url = get_icon_path('search')
-    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
-    item = {'label':label,'icon':img_url,'thumbnail':img_url}
-    item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id, channel_name=channel_name)
-    items.append(item)
-    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
-    item = {'label':label,'icon':img_url,'thumbnail':img_url}
-    item['path'] = plugin.url_for('reset_channel', channel_id=channel_id)
-    items.append(item)
 
     conn = get_conn()
     c = conn.cursor()
     c.execute("SELECT * FROM channels WHERE id=?", [channel_id.decode("utf8")])
     row = c.fetchone()
     channel_path = row["path"]
+    channel_icon = row["icon"]
     c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
 
     for row in c:
@@ -333,6 +324,25 @@ def channel_remap_all(channel_id,channel_name):
         'is_playable': False,
         }
         items.append(item)
+
+    img_url = get_icon_path('search')
+    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
+    item = {'label':label,'icon':img_url,'thumbnail':img_url}
+    item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id, channel_name=channel_name)
+    items.append(item)
+    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
+    item = {'label':label,'icon':img_url,'thumbnail':img_url}
+    item['path'] = plugin.url_for('reset_channel', channel_id=channel_id)
+    items.append(item)
+
+    log(channel_play)
+    if channel_play == "True":
+        if channel_path:
+            item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Play Method'),
+            'path': plugin.url_for('channel_play', channel_id=channel_id,channel_play=False),
+            'thumbnail':channel_icon,
+            'is_playable':False}
+            items.append(item)
 
     return items
 
@@ -842,7 +852,7 @@ def channel(channel_id,channel_name):
 
     if path:
         item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]" % (channel_name,'Play Method'),
-        'path': plugin.url_for('channel_play', channel_id=channel_id),
+        'path': plugin.url_for('channel_play', channel_id=channel_id,channel_play=False),
         'thumbnail':icon,
         'is_playable':False}
         items.append(item)
@@ -856,7 +866,7 @@ def channel(channel_id,channel_name):
 
     label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR red][B]Addon Shortcut[/B][/COLOR]" % (channel_name,addon_name)
     item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
-    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
     items.append(item)
 
     return items
@@ -959,8 +969,8 @@ def streams(addon_id):
 
 
 
-@plugin.route('/channel_play/<channel_id>')
-def channel_play(channel_id):
+@plugin.route('/channel_play/<channel_id>/<channel_play>')
+def channel_play(channel_id,channel_play):
     global big_list_view
     big_list_view = True
     items = []
@@ -1022,7 +1032,7 @@ def channel_play(channel_id):
 
     label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR red][B]Addon Shortcut[/B][/COLOR]" % (channel_name,addon_name)
     item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
-    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
+    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=channel_play)
     items.append(item)
 
     return items
