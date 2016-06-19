@@ -1483,8 +1483,8 @@ def channels():
     return sorted_items
 
 
-@plugin.route('/now_next_time/<seconds>')
-def now_next_time(seconds):
+@plugin.route('/now_next_time/<seconds>/<when>')
+def now_next_time(seconds,when):
     global big_list_view
     big_list_view = True
     conn = get_conn()
@@ -1566,12 +1566,20 @@ def now_next_time(seconds):
         else:
             after_title_format = "[COLOR grey][B]%s[/B][/COLOR]" % after_title
 
-        if  plugin.get_setting('show_channel_name') == 'true':
-            label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s %s %s %s" % \
-            (channel_name,now,now_title_format,next,next_title_format,after,after_title_format)
+        if when == "now":
+            if  plugin.get_setting('show_channel_name') == 'true':
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s %s %s %s" % \
+                (channel_name,now,now_title_format,next,next_title_format,after,after_title_format)
+            else:
+                label = "%s %s %s %s %s %s" % \
+                (now,now_title_format,next,next_title_format,after,after_title_format)
         else:
-            label = "%s %s %s %s %s %s" % \
-            (now,now_title_format,next,next_title_format,after,after_title_format)
+            if  plugin.get_setting('show_channel_name') == 'true':
+                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s %s" % \
+                (channel_name,next,next_title_format,after,after_title_format)
+            else:
+                label = "%s %s %s %s" % \
+                (next,next_title_format,after,after_title_format)
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
@@ -1600,7 +1608,7 @@ def hourly():
         for hour in range(0,24):
             label = "[COLOR blue][B]%02d:00[/B][/COLOR]" % (hour)
             total_seconds = str(time.mktime(dt.timetuple()))
-            items.append({'label':label,'path':plugin.url_for('now_next_time',seconds=total_seconds),'thumbnail':get_icon_path('clock')})
+            items.append({'label':label,'path':plugin.url_for('now_next_time',seconds=total_seconds, when='now'),'thumbnail':get_icon_path('clock')})
             dt = dt + timedelta(hours=1)
 
     return items
@@ -1612,15 +1620,15 @@ def prime():
     dt = datetime.now()
     dt = dt.replace(hour=int(prime), minute=0, second=0)
     total_seconds = str(time.mktime(dt.timetuple()))
-    items = now_next_time(total_seconds)
+    items = now_next_time(total_seconds,'when')
     return items
 
 
-@plugin.route('/now_next')
-def now_next():
+@plugin.route('/now_next/<when>')
+def now_next(when):
     dt = datetime.now()
     total_seconds = str(time.mktime(dt.timetuple()))
-    items = now_next_time(total_seconds)
+    items = now_next_time(total_seconds,when)
     return items
 
 
@@ -2127,10 +2135,15 @@ def activate_link(link):
 def index():
     items = [
     {
-        'label': '[COLOR green][B]Now Next[/B][/COLOR]',
-        'path': plugin.url_for('now_next'),
+        'label': '[COLOR green][B]Now[/B][/COLOR]',
+        'path': plugin.url_for('now_next', when='now'),
         'thumbnail':get_icon_path('clock'),
     },
+    {
+        'label': '[COLOR green][B]Next[/B][/COLOR]',
+        'path': plugin.url_for('now_next', when='next'),
+        'thumbnail':get_icon_path('clock'),
+    },    
     {
         'label': '[COLOR blue][B]Hourly[/B][/COLOR]',
         'path': plugin.url_for('hourly'),
