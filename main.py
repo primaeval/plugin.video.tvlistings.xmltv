@@ -835,8 +835,10 @@ def channel(channel_id,channel_name):
 
     if method == "not_playable":
         is_playable = False
+        method_label = "(Default Method)"
     else:
         is_playable = True
+        method_label = "(Alternative Method)"
     if path:
         c.execute('SELECT addon FROM addons WHERE path=?', [path])
         row = c.fetchone()
@@ -844,12 +846,15 @@ def channel(channel_id,channel_name):
         addon = xbmcaddon.Addon(addon)
         addon_icon = addon.getAddonInfo('icon')
         addon_name = remove_formatting(addon.getAddonInfo('name'))
-        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR]" % (channel_name,addon_name)
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
+        channel_name,addon_name, method_label)
         item = {'label':label,'thumbnail':addon_icon}
         item['path'] = path
         item['is_playable'] = is_playable
-        url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
-        item['context_menu'] = [('[COLOR yellow]Edit Channel[/COLOR]', actions.update_view(url))]
+        edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
+        choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
+        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
+        ('[COLOR green]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
         items.append(item)
     else:
         label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]Choose Player[/B][/COLOR]" % (channel_name)
