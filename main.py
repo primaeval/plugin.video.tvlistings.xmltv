@@ -246,29 +246,32 @@ def search_addons(channel_name):
     c = conn.cursor()
     c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
     for row in c:
-        addon_id = row["addon"]
-        stream_name = row["name"]
         path = row["path"]
+        stream_name = row["name"]
         icon = row["icon"]
-        try:
-            addon = xbmcaddon.Addon(addon_id)
-        except:
-            continue
-        icon = addon.getAddonInfo('icon')
-        addon_name = remove_formatting(addon.getAddonInfo('name'))
-        label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
-        log(addon_id)
+        method = row["play_method"]
+        addon_id = row["addon"]
+        addon_name = remove_formatting(xbmcaddon.Addon(addon_id).getAddonInfo('name'))
+        addon_icon = xbmcaddon.Addon(addon_id).getAddonInfo('icon')
+        if method == "playable":
+            is_playable = True
+            method_label = "(Default Method)"
+        else:
+            is_playable = False
+            method_label = "(Alternative Method)"
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
+        stream_name,addon_name, method_label)
         item = {
         'label': label,
-        'path': plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path),
-        'thumbnail': icon,
-        'icon': icon,
-        'is_playable': False,
+        'path': path,
+        'thumbnail': addon_icon,
+        'is_playable': is_playable,
         }
+        url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     return items
-
 
 @plugin.route('/channel_remap_search/<channel_id>/<channel_name>')
 def channel_remap_search(channel_id,channel_name):
@@ -875,7 +878,11 @@ def channel(channel_id,channel_name):
         item = {'label':label,'icon':icon,'thumbnail':get_icon_path('search')}
         item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
         items.append(item)
-
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Search'),
+        'path': plugin.url_for(search_addons,channel_name=channel_name),
+        'thumbnail':icon,
+        'is_playable':False}
+    items.append(item)
     return items
 
 
