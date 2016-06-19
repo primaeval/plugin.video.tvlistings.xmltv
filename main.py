@@ -262,8 +262,9 @@ def search_addons(channel_name):
         icon = row["icon"]
         method = row["play_method"]
         addon_id = row["addon"]
-        addon_name = remove_formatting(xbmcaddon.Addon(addon_id).getAddonInfo('name'))
-        addon_icon = xbmcaddon.Addon(addon_id).getAddonInfo('icon')
+        (addon_name,addon_icon) = get_addon_info(addon_id)
+        if not addon_name:
+            continue
         if method == "playable":
             is_playable = True
             method_label = "(Default Method)"
@@ -785,7 +786,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     remind = [row['start'] for row in c]
     c.execute('SELECT * FROM watch WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
     watch = [row['start'] for row in c]
-
+    #TODO deal with disabled addons
     clock_icon = get_icon_path('alarm')
     if not int(start) in remind:
         items.append({
@@ -864,24 +865,28 @@ def channel(channel_id,channel_name):
     else:
         is_playable = False
         method_label = "(Alternative Method)"
+    choose = False
     if path:
         c.execute('SELECT addon FROM addons WHERE path=?', [path])
         row = c.fetchone()
         addon = row["addon"]
-        addon = xbmcaddon.Addon(addon)
-        addon_icon = addon.getAddonInfo('icon')
-        addon_name = remove_formatting(addon.getAddonInfo('name'))
-        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
-        channel_name,addon_name, method_label)
-        item = {'label':label,'thumbnail':addon_icon}
-        item['path'] = path
-        item['is_playable'] = is_playable
-        edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
-        choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
-        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
-        ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
-        items.append(item)
+        (addon_name,addon_icon) = get_addon_info(addon)
+        if addon_name:
+            label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
+            channel_name,addon_name, method_label)
+            item = {'label':label,'thumbnail':addon_icon}
+            item['path'] = path
+            item['is_playable'] = is_playable
+            edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
+            choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
+            item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
+            ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
+            items.append(item)
+        else:
+            choose = True
     else:
+        choose = True
+    if choose:
         label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]Choose Player[/B][/COLOR]" % (channel_name)
         item = {'label':label,'icon':icon,'thumbnail':get_icon_path('search')}
         item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
@@ -1989,6 +1994,16 @@ def urlencode_path(path):
     return path
 
 
+def get_addon_info(id):
+    try:
+        addon = xbmcaddon.Addon(id)
+        name = remove_formatting(addon.getAddonInfo('name'))
+        name = remove_formatting(name)
+        icon = addon.getAddonInfo('icon')
+        return (name,icon)
+    except:
+        return ('','')
+
 @plugin.route('/browse_addons')
 def browse_addons():
     global big_list_view
@@ -2000,18 +2015,17 @@ def browse_addons():
 
     addons = response["addons"]
     ids = [a["addonid"] for a in addons]
-    thumbnails = dict([[f["addonid"], f["thumbnail"]] for f in addons])
+    #thumbnails = dict([[f["addonid"], f["thumbnail"]] for f in addons])
     items = []
     for id in ids:
         path = "plugin://%s" % id
         path = urlencode_path(path)
-        addon = xbmcaddon.Addon(id)
-        name = remove_formatting(addon.getAddonInfo('name'))
-        name = remove_formatting(name)
-        item = {'label':'[COLOR white]%s[/COLOR]' % name,
-        'path':plugin.url_for('browse_path', addon=id, path=path),
-        'thumbnail':thumbnails[id]}
-        items.append(item)
+        (name,icon) = get_addon_info(id)
+        if name:
+            item = {'label':'[COLOR white]%s[/COLOR]' % name,
+            'path':plugin.url_for('browse_path', addon=id, path=path),
+            'thumbnail':icon}
+            items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'].lower())
     return sorted_items
