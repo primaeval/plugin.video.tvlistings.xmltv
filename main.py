@@ -1119,6 +1119,9 @@ def get_url(url):
 
 
 def store_channels():
+    if plugin.get_setting('ini_type') == '0':
+        return
+
     if plugin.get_setting('ini_reload') == 'true':
         plugin.set_setting('ini_reload','false')
     else:
@@ -1130,7 +1133,7 @@ def store_channels():
 
     items = []
 
-    if plugin.get_setting('ini_type') == '1':
+    if plugin.get_setting('ini_type') == '2':
         url = plugin.get_setting('ini_url')
         r = requests.get(url)
         file_name = 'special://profile/addon_data/plugin.video.tvlistings.xmltv/addons.ini'
@@ -1151,7 +1154,7 @@ def store_channels():
         plugin.set_setting('ini_last_modified',modified)
 
     try:
-        if plugin.get_setting('ini_type') == '1':
+        if plugin.get_setting('ini_type') == '2':
             f = xmltv_f
         else:
             f = xbmcvfs.File(ini_file)

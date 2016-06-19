@@ -22,9 +22,9 @@
 <setting id="xml_reload_hour" label="xmltv Timer reload Hour" type="enum" default="3" values="$HOURS" />
 </category>
 <category label="XMLTV .ini File">
-<setting label=".ini Type" type="enum" id="ini_type" default="File" values="File|Url" />
-<setting id="ini_url" label="stream .ini file url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/addons.ini" />
-<setting id="ini_file" label="stream .ini file" type="file" mask="*.ini" enable="eq(-2,0)" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini" />
+<setting label=".ini Type" type="enum" id="ini_type" default="None" values="None|File|Url" />
+<setting id="ini_url" label="stream .ini file url" type="text" enable="eq(-1,2)" default="http://www.thaisatellite.tv/ftv/addons.ini" />
+<setting id="ini_file" label="stream .ini file" type="file" mask="*.ini" enable="eq(-2,1)" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini" />
 <setting id="ini_reload" label="Force reload .ini files" type="bool" default="true" />
 </category>
 <category label="Logos">
