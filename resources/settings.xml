@@ -12,8 +12,8 @@
 </category>
 <category label="XMLTV Data">
 <setting label="XMLTV Type" type="enum" id="xmltv_type" default="File" values="File|Url" />
-<setting id="xmltv_url" label="XMLTV Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/guide.xmltv" />
-<setting id="xmltv_file" label="XMLTV File" type="file" mask="*.xml|*.xmltv" enable="eq(-2,0)" default="special://home/addons/plugin.video.tvlistings.xmltv/resources/xmltv.xml" />
+<setting id="xmltv_url" label="XMLTV Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/guide_usukbasic.xmltv" />
+<setting id="xmltv_file" label="XMLTV File" type="file" mask="*.xml|*.xmltv" enable="eq(-2,0)" default="" />
 <setting id="xml_reload_modified" label="Reload xmltv file when Modified" type="bool" enable="eq(-3,0)" default="true" />
 <setting type="sep"/>
 <setting id="xml_reload" label="Force reload xmltv file" type="bool" default="true" />
@@ -24,7 +24,7 @@
 <category label="XMLTV .ini File">
 <setting label=".ini Type" type="enum" id="ini_type" default="None" values="None|File|Url" />
 <setting id="ini_url" label="stream .ini file url" type="text" enable="eq(-1,2)" default="http://www.thaisatellite.tv/ftv/addons.ini" />
-<setting id="ini_file" label="stream .ini file" type="file" mask="*.ini" enable="eq(-2,1)" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/myaddons.ini" />
+<setting id="ini_file" label="stream .ini file" type="file" mask="*.ini" enable="eq(-2,1)" default="" />
 <setting id="ini_reload" label="Force reload .ini files" type="bool" default="true" />
 </category>
 <category label="Logos">
