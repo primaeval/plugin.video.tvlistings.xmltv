@@ -60,11 +60,22 @@ def clear_addon_paths():
     dialog.notification("TV Listings (xmltv)","Done: Clear Addon Paths")
 
 
+@plugin.route('/clear_addons')
+def clear_addons():
+    conn = get_conn()
+    conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
+    conn.execute('DROP TABLE IF EXISTS addons')
+    conn.commit()
+    create_database_tables()
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Clear Addons")
+
+
 @plugin.route('/clear_channels')
 def clear_channels():
     conn = get_conn()
     conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
-    conn.execute('DROP TABLE IF EXISTS addons')
+    conn.execute('DROP TABLE IF EXISTS channels')
     conn.commit()
     create_database_tables()
     dialog = xbmcgui.Dialog()
@@ -148,7 +159,7 @@ def channel_list():
             item['path'] = path
             item['is_playable'] = is_playable
             edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
-            choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
+            choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
             item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
             ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
@@ -1317,6 +1328,7 @@ def xml_channels():
                 else:
                     return
         else:
+            clear_channels()
             pass
 
     xbmc.log("XMLTV UPDATE")
@@ -2143,7 +2155,7 @@ def index():
         'label': '[COLOR white][B]Next[/B][/COLOR]',
         'path': plugin.url_for('now_next', when='next'),
         'thumbnail':get_icon_path('clock'),
-    },    
+    },
     {
         'label': '[COLOR blue][B]Hourly[/B][/COLOR]',
         'path': plugin.url_for('hourly'),

@@ -43,10 +43,12 @@
 </category>
 <category label="Maintenance">
 <setting label="Refresh Addon Shortcut Folders" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/reload_addon_paths)"/>
-<setting label="[COLOR red]Clear Addon Paths[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addon_paths)"/>
-<setting type="sep"/>
 <setting label="Export Channel List" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/export_channels)"/>
-<setting label="[COLOR red]Clear Channels and Addon Shortcuts[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
+<setting type="sep"/>
+<setting label="[COLOR red]Clear Channels[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
+<setting label="[COLOR red]Clear Addon Shortcuts[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addons)"/>
+<setting label="[COLOR red]Clear Addon Paths[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addon_paths)"/>
+
 <setting type="sep"/>
 <setting label="[COLOR red]Delete Everything![/COLOR]"  type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/nuke)"/>
 </category>
