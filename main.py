@@ -1548,6 +1548,7 @@ def now_next_time(seconds,when):
 
         next = ''
         next_title = ''
+        next_start = ''
         if index+1 < max:
             next_start = times[index + 1]
             c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,next_start])
@@ -1564,6 +1565,7 @@ def now_next_time(seconds,when):
 
         after = ''
         after_title = ''
+        after_start = ''
         if (index+2) < max:
             after_start = times[index + 2]
             c.execute('SELECT * FROM programmes WHERE channel=? AND start=?', [channel_id,after_start])
