@@ -272,6 +272,16 @@ def channel_remap_all(channel_id,channel_name,channel_play):
 
     items = []
 
+    img_url = get_icon_path('search')
+    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
+    item = {'label':label,'icon':img_url,'thumbnail':img_url}
+    item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id, channel_name=channel_name)
+    items.append(item)
+    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
+    item = {'label':label,'icon':img_url,'thumbnail':img_url}
+    item['path'] = plugin.url_for('reset_channel', channel_id=channel_id)
+    items.append(item)
+
     conn = get_conn()
     c = conn.cursor()
     c.execute("SELECT * FROM channels WHERE id=?", [channel_id.decode("utf8")])
@@ -302,17 +312,9 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         'icon': icon,
         'is_playable': False,
         }
+        url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        item['context_menu'] = [('[COLOR yellow]Edit Shortcut[/COLOR]', actions.update_view(url))]
         items.append(item)
-
-    img_url = get_icon_path('search')
-    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
-    item = {'label':label,'icon':img_url,'thumbnail':img_url}
-    item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id, channel_name=channel_name)
-    items.append(item)
-    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
-    item = {'label':label,'icon':img_url,'thumbnail':img_url}
-    item['path'] = plugin.url_for('reset_channel', channel_id=channel_id)
-    items.append(item)
 
     log(channel_play)
     if channel_play == "True":
@@ -321,7 +323,7 @@ def channel_remap_all(channel_id,channel_name,channel_play):
             'path': plugin.url_for('channel_play', channel_id=channel_id,channel_play=False),
             'thumbnail':channel_icon,
             'is_playable':False}
-            items.append(item)
+            #items.append(item)
 
     return items
 
@@ -362,6 +364,8 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
         'icon': icon,
         'is_playable': False,
         }
+        url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        item['context_menu'] = [('[COLOR yellow]xEdit Channel[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -818,7 +822,8 @@ def channel(channel_id,channel_name):
     items = []
 
     addon = xbmcaddon.Addon()
-    icon = addon.getAddonInfo('icon')
+    addon_icon = addon.getAddonInfo('icon')
+    addon_name = remove_formatting(addon.getAddonInfo('name'))
 
     conn = get_conn()
     c = conn.cursor()
@@ -828,58 +833,29 @@ def channel(channel_id,channel_name):
     icon = row["icon"]
     method = row["play_method"]
 
-    if path:
-        if method == "not_playable":
-            default_color = "green"
-            alternative_color = "white"
-        else:
-            default_color = "white"
-            alternative_color = "green"
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,default_color,'Play'),
-            'path':path,
-            'thumbnail':icon,
-            'is_playable':True}
-        items.append(item)
-        item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]" % (channel_name,alternative_color,'Alternative Play'),
-            'path':path,
-            'thumbnail':icon,
-            'is_playable':False}
-        items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Search'),
-        'path': plugin.url_for(search_addons,channel_name=channel_name),
-        'thumbnail':icon,
-        'is_playable':False}
-    items.append(item)
-
-    try:
-        meta_icon = xbmcaddon.Addon('plugin.video.meta').getAddonInfo('icon')
-        meta_url = "plugin://plugin.video.meta/live/search_term/%s" % (channel_name)
-        items.append({
-        'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]' % (channel_name,'Meta Live'),
-        'path': meta_url,
-        'thumbnail': meta_icon,
-        'icon': meta_icon,
-        'is_playable': False,
-         })
-    except:
-        pass
-
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute('SELECT addon FROM addons WHERE path=?', [path])
-    row = c.fetchone()
-    if row:
-        addon = row["addon"]
-        addon_name = remove_formatting(xbmcaddon.Addon(addon).getAddonInfo('name'))
-        addon_icon = xbmcaddon.Addon(addon).getAddonInfo('icon')
+    if method == "not_playable":
+        is_playable = False
     else:
-        addon_name = ''
-        addon_icon = icon
-
-    label = "[COLOR yellow]%s[/COLOR] [COLOR green]%s[/COLOR] [COLOR red]Default Shortcut[/COLOR]" % (channel_name,addon_name)
-    item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
-    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
-    items.append(item)
+        is_playable = True
+    if path:
+        c.execute('SELECT addon FROM addons WHERE path=?', [path])
+        row = c.fetchone()
+        addon = row["addon"]
+        addon = xbmcaddon.Addon(addon)
+        addon_icon = addon.getAddonInfo('icon')
+        addon_name = remove_formatting(addon.getAddonInfo('name'))
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR]" % (channel_name,addon_name)
+        item = {'label':label,'thumbnail':addon_icon}
+        item['path'] = path
+        item['is_playable'] = is_playable
+        url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
+        item['context_menu'] = [('[COLOR yellow]Edit Channel[/COLOR]', actions.update_view(url))]
+        items.append(item)
+    else:
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]Choose Player[/B][/COLOR]" % (channel_name)
+        item = {'label':label,'icon':icon,'thumbnail':get_icon_path('search')}
+        item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
+        items.append(item)
 
     return items
 
@@ -994,46 +970,13 @@ def channel_play(channel_id,channel_play):
     icon = row["icon"]
     method = row["play_method"]
     if method == "not_playable":
-        default_color = "green"
-        alternative_color = "white"
+        default_color = "grey"
+        alternative_color = "red"
         is_playable = False
     else:
-        default_color = "white"
-        alternative_color = "green"
+        default_color = "red"
+        alternative_color = "grey"
         is_playable = True
-
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, default_color,'Default Play'),
-    'path': path,
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': True,
-    }
-    items.append(item)
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, alternative_color,'Alternative Play'),
-    'path': path,
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': False,
-    }
-    items.append(item)
-    item = {
-    'label': '[COLOR %s]%s[/COLOR]' % (default_color,'Set Default Play'),
-    'path': plugin.url_for(set_channel_method, channel_id=channel_id, method='playable'),
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': False,
-    }
-    items.append(item)
-    item = {
-    'label': '[COLOR %s]%s[/COLOR]' % (alternative_color,'Set Alternative Play'),
-    'path': plugin.url_for(set_channel_method, channel_id=channel_id, method='not_playable'),
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': False,
-    }
-    items.append(item)
 
     conn = get_conn()
     c = conn.cursor()
@@ -1043,9 +986,25 @@ def channel_play(channel_id,channel_play):
     addon_name = remove_formatting(xbmcaddon.Addon(addon).getAddonInfo('name'))
     addon_icon = xbmcaddon.Addon(addon).getAddonInfo('icon')
 
-    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR red][B]Addon Shortcut[/B][/COLOR]" % (channel_name,addon_name)
-    item = {'label':label,'icon':addon_icon,'thumbnail':addon_icon}
-    item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=channel_play)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (
+    channel_name, addon_name, default_color,'Default Play'),
+    'path': path,
+    'thumbnail': addon_icon,
+    'is_playable': True,
+    }
+    url = plugin.url_for(set_channel_method, channel_id=channel_id, method='playable')
+    item['context_menu'] = [('[COLOR yellow]Set Default[/COLOR]', actions.update_view(url))]
+    items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (
+    channel_name, addon_name, alternative_color,'Alternative Play'),
+    'path': path,
+    'thumbnail': addon_icon,
+    'is_playable': False,
+    }
+    url = plugin.url_for(set_channel_method, channel_id=channel_id, method='not_playable')
+    item['context_menu'] = [('[COLOR yellow]Set Alternative[/COLOR]', actions.update_view(url))]
     items.append(item)
 
     return items
@@ -1063,7 +1022,7 @@ def set_addon_method(addon_id,stream_name,method):
     conn = get_conn()
     conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name.decode("utf8")])
     conn.commit()
-
+    xbmc.executebuiltin('Container.Refresh')
 
 @plugin.route('/stream_play/<addon_id>/<stream_name>/<path>')
 def stream_play(addon_id,stream_name,path):
@@ -1071,7 +1030,8 @@ def stream_play(addon_id,stream_name,path):
     big_list_view = True
     addon = xbmcaddon.Addon(addon_id)
     if addon:
-        icon = addon.getAddonInfo('icon')
+        addon_icon = addon.getAddonInfo('icon')
+        addon_name = remove_formatting(addon.getAddonInfo('name'))
     else:
         icon = ''
     items = []
@@ -1083,52 +1043,31 @@ def stream_play(addon_id,stream_name,path):
     method = row["play_method"]
 
     if method == "not_playable":
-        default_color = "green"
-        alternative_color = "white"
+        default_color = "grey"
+        alternative_color = "red"
+        is_playable = False
     else:
-        default_color = "white"
-        alternative_color = "green"
+        default_color = "red"
+        alternative_color = "grey"
+        is_playable = True
 
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, default_color, 'Default Play'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, addon_name, default_color,'Default Play'),
     'path': path,
-    'thumbnail': icon,
-    'icon': icon,
+    'thumbnail': addon_icon,
     'is_playable': True,
     }
+    url = plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='playable')
+    item['context_menu'] = [('[COLOR yellow]Set Default[/COLOR]', actions.update_view(url))]
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, alternative_color, 'Alternative Play'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, addon_name, alternative_color,'Alternative Play'),
     'path': path,
-    'thumbnail': icon,
-    'icon': icon,
+    'thumbnail': addon_icon,
     'is_playable': False,
     }
-    items.append(item)
-    item = {
-    'label': '[COLOR %s]%s[/COLOR]' % (default_color,'Set Default Play'),
-    'path': plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='playable'),
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': False,
-    }
-    items.append(item)
-    item = {
-    'label': '[COLOR %s]%s[/COLOR]' % (alternative_color,'Set Alternative Play'),
-    'path': plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='not_playable'),
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': False,
-    }
-    items.append(item)
-
-    item = {
-    'label': '[COLOR %s]%s[/COLOR]' % ('red','Rename Shortcut'),
-    'path': plugin.url_for(rename_shortcut, addon_id=addon_id, stream_name=stream_name, path=urllib.quote(path,safe='')),
-    'thumbnail': icon,
-    'icon': icon,
-    'is_playable': False,
-    }
+    url = plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='not_playable')
+    item['context_menu'] = [('[COLOR yellow]Set Alternative[/COLOR]', actions.update_view(url))]
     items.append(item)
 
     return items
@@ -1614,11 +1553,11 @@ def hourly():
 
     for day in ("Today","Tomorrow"):
         label = "[COLOR red][B]%s[/B][/COLOR]" % (day)
-        items.append({'label':label,'path':plugin.url_for('hourly')})
+        items.append({'label':label,'path':plugin.url_for('hourly'),'thumbnail':get_icon_path('calendar')})
         for hour in range(0,24):
             label = "[COLOR blue][B]%02d:00[/B][/COLOR]" % (hour)
             total_seconds = str(time.mktime(dt.timetuple()))
-            items.append({'label':label,'path':plugin.url_for('now_next_time',seconds=total_seconds)})
+            items.append({'label':label,'path':plugin.url_for('now_next_time',seconds=total_seconds),'thumbnail':get_icon_path('clock')})
             dt = dt + timedelta(hours=1)
 
     return items
