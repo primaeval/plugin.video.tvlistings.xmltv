@@ -1620,7 +1620,7 @@ def prime():
     dt = datetime.now()
     dt = dt.replace(hour=int(prime), minute=0, second=0)
     total_seconds = str(time.mktime(dt.timetuple()))
-    items = now_next_time(total_seconds,'when')
+    items = now_next_time(total_seconds,'now')
     return items
 
 
@@ -2135,12 +2135,12 @@ def activate_link(link):
 def index():
     items = [
     {
-        'label': '[COLOR green][B]Now[/B][/COLOR]',
+        'label': '[COLOR orange][B]Now[/B][/COLOR]',
         'path': plugin.url_for('now_next', when='now'),
         'thumbnail':get_icon_path('clock'),
     },
     {
-        'label': '[COLOR green][B]Next[/B][/COLOR]',
+        'label': '[COLOR white][B]Next[/B][/COLOR]',
         'path': plugin.url_for('now_next', when='next'),
         'thumbnail':get_icon_path('clock'),
     },    
