@@ -877,14 +877,6 @@ def addon_streams():
     addons = [row["addon"] for row in c]
 
     icon = ''
-    item = {
-    'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
-    'path': plugin.url_for(search_addons, channel_name='none'),
-    'thumbnail': get_icon_path('search'),
-    'is_playable': False,
-    }
-
-    items.append(item)
     for addon_id in sorted(addons):
         try:
             addon = xbmcaddon.Addon(addon_id)
@@ -900,6 +892,16 @@ def addon_streams():
                 items.append(item)
         except:
             pass
+    sorted_items = sorted(items, key=lambda item: item['label'].lower())
+    items = []
+    item = {
+    'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
+    'path': plugin.url_for(search_addons, channel_name='none'),
+    'thumbnail': get_icon_path('search'),
+    'is_playable': False,
+    }
+    items.append(item)
+    items= items + sorted_items
     return items
 
 
@@ -1948,12 +1950,12 @@ def browse_addons():
         addon = xbmcaddon.Addon(id)
         name = remove_formatting(addon.getAddonInfo('name'))
         name = remove_formatting(name)
-        item = {'label':'[COLOR green][B]%s[/B][/COLOR]' % name,
+        item = {'label':'[COLOR white]%s[/COLOR]' % name,
         'path':plugin.url_for('browse_path', addon=id, path=path),
         'thumbnail':thumbnails[id]}
         items.append(item)
 
-    sorted_items = sorted(items, key=lambda item: item['label'])
+    sorted_items = sorted(items, key=lambda item: item['label'].lower())
     return sorted_items
 
 
@@ -1993,7 +1995,7 @@ def browse_path(addon,path):
         log(dir)
         path = dirs[dir]
         dir = remove_formatting(dir)
-        item = {'label':dir,
+        item = {'label':"[B]%s[/B]" % dir,
         'path':plugin.url_for('browse_path', addon=addon, path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
