@@ -1,4 +1,5 @@
 from xbmcswift2 import Plugin
+from xbmcswift2 import actions
 import xbmc,xbmcaddon,xbmcvfs,xbmcgui
 import re
 
@@ -124,10 +125,18 @@ def channel_list():
         channel_name = row['name']
         img_url = row['icon']
         path = row['path']
+        method = row["play_method"]
+        if method == "not_playable":
+            is_playable = False
+        else:
+            is_playable = True
         if path:
             label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
-            item['path'] = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
+            item['path'] = path
+            item['is_playable'] = is_playable
+            url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
+            item['context_menu'] = [('[COLOR yellow]Edit Channel[/COLOR]', actions.update_view(url))]
             items.append(item)
     c.close()
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -987,9 +996,11 @@ def channel_play(channel_id,channel_play):
     if method == "not_playable":
         default_color = "green"
         alternative_color = "white"
+        is_playable = False
     else:
         default_color = "white"
         alternative_color = "green"
+        is_playable = True
 
     item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (channel_name, default_color,'Default Play'),
