@@ -274,11 +274,11 @@ def channel_remap_all(channel_id,channel_name,channel_play):
 
     img_url = get_icon_path('search')
     label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
-    item = {'label':label,'icon':img_url,'thumbnail':img_url}
+    item = {'label':label,'thumbnail':img_url}
     item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id, channel_name=channel_name)
     items.append(item)
     label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
-    item = {'label':label,'icon':img_url,'thumbnail':img_url}
+    item = {'label':label,'thumbnail':get_icon_path('settings')}
     item['path'] = plugin.url_for('reset_channel', channel_id=channel_id)
     items.append(item)
 
@@ -833,11 +833,11 @@ def channel(channel_id,channel_name):
     icon = row["icon"]
     method = row["play_method"]
 
-    if method == "not_playable":
-        is_playable = False
+    if method == "playable":
+        is_playable = True
         method_label = "(Default Method)"
     else:
-        is_playable = True
+        is_playable = False
         method_label = "(Alternative Method)"
     if path:
         c.execute('SELECT addon FROM addons WHERE path=?', [path])
@@ -2092,42 +2092,52 @@ def index():
     {
         'label': '[COLOR green][B]Now Next[/B][/COLOR]',
         'path': plugin.url_for('now_next'),
+        'thumbnail':get_icon_path('clock'),
     },
     {
         'label': '[COLOR blue][B]Hourly[/B][/COLOR]',
         'path': plugin.url_for('hourly'),
+        'thumbnail':get_icon_path('clock'),
     },
     {
         'label': '[COLOR orange][B]Prime Time[/B][/COLOR]',
         'path': plugin.url_for('prime'),
+        'thumbnail':get_icon_path('clock'),
     },
     {
         'label': '[COLOR red][B]Channel Listings[/B][/COLOR]',
         'path': plugin.url_for('channels'),
+        'thumbnail':get_icon_path('tv'),
     },
     {
         'label': '[COLOR yellow][B]Search Programmes[/B][/COLOR]',
         'path': plugin.url_for('search_dialog'),
+        'thumbnail':get_icon_path('search'),
     },
     {
         'label': '[COLOR blue][B]Reminders[/B][/COLOR]',
         'path': plugin.url_for('reminders'),
+        'thumbnail':get_icon_path('clock'),
     },
     {
         'label': '[COLOR yellow]Channel Player[/COLOR]',
         'path': plugin.url_for('channel_list'),
+        'thumbnail':get_icon_path('tv'),
     },
     {
         'label': '[COLOR red]Default Shortcuts[/COLOR]',
         'path': plugin.url_for('channel_remap'),
+        'thumbnail':get_icon_path('magnet'),
     },
     {
         'label': '[COLOR green]Addon Shortcuts[/COLOR]',
         'path': plugin.url_for('addon_streams'),
+        'thumbnail':get_icon_path('settings'),
     },
     {
         'label': '[COLOR grey]Addon Browser[/COLOR]',
         'path': plugin.url_for('browse_addons'),
+        'thumbnail':get_icon_path('settings'),
     },
     ]
     return items
