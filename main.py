@@ -244,7 +244,7 @@ def search_addons(channel_name):
     items = []
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
+    c.execute("SELECT * FROM addons WHERE REPLACE(LOWER(name), ' ', '') LIKE REPLACE(LOWER(?), ' ', '') ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
     for row in c:
         path = row["path"]
         stream_name = row["name"]
@@ -305,7 +305,7 @@ def channel_remap_all(channel_id,channel_name,channel_play):
     row = c.fetchone()
     channel_path = row["path"]
     channel_icon = row["icon"]
-    c.execute("SELECT * FROM addons WHERE LOWER(name) LIKE LOWER(?) ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
+    c.execute("SELECT * FROM addons WHERE REPLACE(LOWER(name), ' ', '') LIKE REPLACE(LOWER(?), ' ', '') ORDER BY addon, name", ['%'+channel_name.decode("utf8")+'%'])
 
     for row in c:
         addon_id = row["addon"]
@@ -333,7 +333,6 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(url))]
         items.append(item)
 
-    log(channel_play)
     if channel_play == "True":
         if channel_path:
             item = {'label':"[COLOR yellow]%s[/COLOR] [COLOR red]%s[/COLOR]" % (channel_name,'Play Method'),
@@ -773,8 +772,6 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     c = conn.cursor()
     c.execute('SELECT * FROM remind WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
     remind = [row['start'] for row in c]
-    log(remind)
-    log(start)
     c.execute('SELECT * FROM watch WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
     watch = [row['start'] for row in c]
 
@@ -2031,7 +2028,6 @@ def browse_path(addon,path):
     items = []
 
     for dir in sorted(dirs):
-        log(dir)
         path = dirs[dir]
         dir = remove_formatting(dir)
         item = {'label':"[B]%s[/B]" % dir,
