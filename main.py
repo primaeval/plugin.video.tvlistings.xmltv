@@ -876,7 +876,7 @@ def channel(channel_id,channel_name):
             item = {'label':label,'thumbnail':addon_icon}
             item['path'] = path
             item['is_playable'] = is_playable
-            edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
+            edit_url = plugin.url_for('channel_play', channel_id=channel_id,channel_play=False)
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
             item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
             ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
