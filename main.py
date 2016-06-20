@@ -2006,14 +2006,11 @@ def get_addon_info(id):
 def browse_addon_paths():
     global big_list_view
     big_list_view = True
-    #try:
-    #    response = RPC.addons.get_addons(type="xbmc.addon.video",properties=["thumbnail"])
-    #except:
-    #     return
+
     conn = get_conn()
     c = conn.cursor()
     c.execute("SELECT * FROM addon_paths")
-    #addon_paths = [row["addon"] for row in c]
+
     items = []
     for row in c:
         addon_id = row["addon"]
