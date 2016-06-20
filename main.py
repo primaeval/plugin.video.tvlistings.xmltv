@@ -2001,6 +2001,37 @@ def get_addon_info(id):
     except:
         return ('','')
 
+
+@plugin.route('/browse_addon_paths')
+def browse_addon_paths():
+    global big_list_view
+    big_list_view = True
+    #try:
+    #    response = RPC.addons.get_addons(type="xbmc.addon.video",properties=["thumbnail"])
+    #except:
+    #     return
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM addon_paths")
+    #addon_paths = [row["addon"] for row in c]
+    items = []
+    for row in c:
+        addon_id = row["addon"]
+        addon_path = row["path"]
+        path_name = row["name"]
+        method = row["play_method"]
+        (addon_name,addon_icon) = get_addon_info(addon_id)
+        if addon_name:
+            label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR]" % (addon_name,path_name)
+            item = {'label':label,
+            'path':plugin.url_for('browse_path', addon=addon_id, name=path_name, path=addon_path),
+            'thumbnail':addon_icon}
+            items.append(item)
+
+    sorted_items = sorted(items, key=lambda item: remove_formatting(item['label']).lower())
+    return sorted_items
+
+
 @plugin.route('/browse_addons')
 def browse_addons():
     global big_list_view
@@ -2259,6 +2290,11 @@ def index():
     {
         'label': '[COLOR green][B]Addon Shortcuts[/B][/COLOR]',
         'path': plugin.url_for('addon_streams'),
+        'thumbnail':get_icon_path('settings'),
+    },
+    {
+        'label': '[COLOR yellow][B]Addon Folders[/B][/COLOR]',
+        'path': plugin.url_for('browse_addon_paths'),
         'thumbnail':get_icon_path('settings'),
     },
     {
