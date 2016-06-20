@@ -35,8 +35,8 @@
 <category label="Reminders">
 <setting id="watch_and_stop" label="Stop playback at end of watch timer" type="bool" default="true" />
 <setting type="sep"/>
-<setting label="Minutes before" type="enum" id="remind_before" values="0|1|2|3|4|5|10" defaul="0"/>
-<setting label="Minutes after" type="enum" id="remind_after" values="0|1|2|3|4|5|10" defaul="0"/>
+<setting label="Minutes before" type="enum" id="remind_before" values="0|1|2|3|4|5|10" default="0"/>
+<setting label="Minutes after" type="enum" id="remind_after" values="0|1|2|3|4|5|10" default="0"/>
 <setting type="sep"/>
 <setting label="[COLOR green]Refresh reminders[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/refresh_reminders)"/>
 <setting label="[COLOR red]Clear reminders[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_reminders)"/>
