@@ -1180,6 +1180,10 @@ def store_channels():
     else:
         ini_file = plugin.get_setting('ini_file')
         path = xbmc.translatePath(plugin.get_setting('ini_file'))
+        if not xbmcvfs.exists(path):
+            dialog = xbmcgui.Dialog()
+            dialog.notification("TV Listings (xmltv)","Error: ini File Not Found!")
+            return
         stat = xbmcvfs.Stat(path)
         modified = str(stat.st_mtime())
         plugin.set_setting('ini_last_modified',modified)
@@ -1294,6 +1298,10 @@ def xml_channels():
             if plugin.get_setting('xmltv_type') == '0': # File
                 if plugin.get_setting('xml_reload_modified') == 'true':
                     path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
+                    if not xbmcvfs.exists(path):
+                        dialog = xbmcgui.Dialog()
+                        dialog.notification("TV Listings (xmltv)","Error: xmltv File Not Found!")
+                        return
                     stat = xbmcvfs.Stat(path)
                     modified = str(stat.st_mtime())
                     last_modified = plugin.get_setting('xmltv_last_modified')
@@ -1343,6 +1351,9 @@ def xml_channels():
         file_name = 'special://profile/addon_data/plugin.video.tvlistings.xmltv/xmltv.xml'
         xmltv_f = xbmcvfs.File(file_name,'w')
         xml = r.content
+        if r.status_code == 404:
+            dialog.notification("TV Listings (xmltv)","ERROR: No xmltv Url Data")
+            return
         xmltv_f.write(xml)
         xmltv_f.close()
         xmltv_file = file_name
@@ -1352,6 +1363,10 @@ def xml_channels():
     else:
         xmltv_file = plugin.get_setting('xmltv_file')
         path = xbmc.translatePath(plugin.get_setting('xmltv_file'))
+        if not xbmcvfs.exists(path):
+            dialog = xbmcgui.Dialog()
+            dialog.notification("TV Listings (xmltv)","Error: xmltv File Not Found!")
+            return
         stat = xbmcvfs.Stat(path)
         modified = str(stat.st_mtime())
         plugin.set_setting('xmltv_last_modified',modified)
