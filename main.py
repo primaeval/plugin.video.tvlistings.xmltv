@@ -2009,6 +2009,10 @@ def browse_addons():
         response = RPC.addons.get_addons(type="xbmc.addon.video",properties=["thumbnail"])
     except:
          return
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT addon,path FROM addon_paths")
+    addon_paths = [row["addon"] for row in c]
 
     addons = response["addons"]
     addon_ids = [a["addonid"] for a in addons]
@@ -2019,12 +2023,16 @@ def browse_addons():
         path = urlencode_path(path)
         (name,icon) = get_addon_info(addon_id)
         if name:
-            item = {'label':'[COLOR white]%s[/COLOR]' % name,
+            if addon_id in addon_paths:
+                label = "[COLOR yellow][B]%s[/B][/COLOR]" % name
+            else:
+                label = "[COLOR grey][B]%s[/B][/COLOR]" % name
+            item = {'label':label,
             'path':plugin.url_for('browse_path', addon=addon_id, name=name, path=path),
             'thumbnail':icon}
             items.append(item)
 
-    sorted_items = sorted(items, key=lambda item: item['label'].lower())
+    sorted_items = sorted(items, key=lambda item: remove_formatting(item['label']).lower())
     return sorted_items
 
 
