@@ -142,7 +142,7 @@ def channel_list():
             cc = conn.cursor()
             cc.execute('SELECT addon FROM addons WHERE path=?', [path])
             row = cc.fetchone()
-            addon = row["addon"]
+            addon_id = row["addon"]
             (addon_name,addon_icon) = get_addon_info(addon_id)
             if method == "playable":
                 is_playable = True
