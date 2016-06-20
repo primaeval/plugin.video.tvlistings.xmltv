@@ -2020,7 +2020,7 @@ def browse_addons():
         (name,icon) = get_addon_info(addon_id)
         if name:
             item = {'label':'[COLOR white]%s[/COLOR]' % name,
-            'path':plugin.url_for('browse_path', addon=addon_id, path=path),
+            'path':plugin.url_for('browse_path', addon=addon_id, name=name, path=path),
             'thumbnail':icon}
             items.append(item)
 
@@ -2028,8 +2028,18 @@ def browse_addons():
     return sorted_items
 
 
-@plugin.route('/browse_path/<addon>/<path>')
-def browse_path(addon,path):
+@plugin.route('/remove_addon_path/<path>')
+def remove_addon_path(path):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute('DELETE FROM addon_paths WHERE path=?', [path])
+    conn.commit()
+    conn.close()
+
+
+
+@plugin.route('/browse_path/<addon>/<name>/<path>')
+def browse_path(addon,name,path):
     global big_list_view
     big_list_view = True
 
@@ -2046,25 +2056,59 @@ def browse_path(addon,path):
     links = dict([[f["file"], f["label"]] for f in files if f["filetype"] == "file"])
     thumbnails = dict([[f["file"], f["thumbnail"]] for f in files])
 
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT path,name FROM addon_paths")
+    paths = [row["path"] for row in c]
+
     top_items = []
-    item = {'label':'[COLOR red][B]Add Folder to Addon Shortcuts[/B][/COLOR]',
-    'path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False, method="playable"),
-    'thumbnail':addon_icon,
-    'is_playable':False}
-    top_items.append(item)
-    item = {'label':'[COLOR green][B]Add Folder to Addon Shortcuts with Alternative Play Method[/B][/COLOR]',
-    'path':plugin.url_for('add_addon_channels', addon=addon, path=path, addon_name=False, method="not_playable"),
-    'thumbnail':addon_icon,
-    'is_playable':False}
-    top_items.append(item)
+
+    c.execute("SELECT * FROM addon_paths WHERE path=?", [path])
+    row = c.fetchone()
+    if row is None:
+        default_menu = True
+        alternative_menu = True
+        remove_menu = False
+    else:
+        method = row["play_method"]
+        if method == "playable":
+            alternative_menu = True
+            default_menu = False
+        else:
+            default_menu = True#
+            alternative_menu = False
+        remove_menu = True
+
+    if default_menu:
+        item = {'label':'[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]',
+        'path':plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=name, method="playable"),
+        'thumbnail':addon_icon,
+        'is_playable':False}
+        top_items.append(item)
+    if alternative_menu:
+        item = {'label':'[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]',
+        'path':plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=name, method="not_playable"),
+        'thumbnail':addon_icon,
+        'is_playable':False}
+        top_items.append(item)
+    if remove_menu:
+        item = {'label':'[COLOR yellow][B]Remove Folder[/B][/COLOR]',
+        'path':plugin.url_for('remove_addon_path', path=path),
+        'thumbnail':addon_icon,
+        'is_playable':False}
+        top_items.append(item)
 
     items = []
 
     for dir in sorted(dirs):
         path = dirs[dir]
         dir = remove_formatting(dir)
-        item = {'label':"[B]%s[/B]" % dir,
-        'path':plugin.url_for('browse_path', addon=addon, path=path),
+        if path in paths:
+            label = "[COLOR yellow][B]%s[/B][/COLOR]" % dir
+        else:
+            label = "[COLOR grey][B]%s[/B][/COLOR]" % dir
+        item = {'label':label,
+        'path':plugin.url_for('browse_path', addon=addon, name=dir, path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
         items.append(item)
@@ -2078,7 +2122,7 @@ def browse_path(addon,path):
         'thumbnail':icon}
         items.append(item)
 
-    sorted_items = sorted(items, key=lambda item: item['label'])
+    sorted_items = sorted(items, key=lambda item: remove_formatting(item['label']))
     items = top_items + sorted_items
     return items
 
@@ -2096,8 +2140,8 @@ def reload_addon_paths():
 
 
 
-@plugin.route('/add_addon_channels/<addon>/<path>/<addon_name>/<method>')
-def add_addon_channels(addon,path,addon_name,method):
+@plugin.route('/add_addon_channels/<addon>/<path>/<path_name>/<method>')
+def add_addon_channels(addon,path,path_name,method):
     try:
         response = RPC.files.get_directory(media="files", directory=path, properties=["thumbnail"])
     except:
@@ -2108,7 +2152,7 @@ def add_addon_channels(addon,path,addon_name,method):
     thumbnails = dict([[f["file"], f["thumbnail"]] for f in files])
 
     conn = get_conn()
-    conn.execute("INSERT OR IGNORE INTO addon_paths(addon, name, path, play_method) VALUES(?, ?, ?, ?)", [addon, addon_name, path, method])
+    conn.execute("INSERT OR REPLACE INTO addon_paths(addon, name, path, play_method) VALUES(?, ?, ?, ?)", [addon, path_name, path, method])
 
     for file in sorted(labels):
         label = labels[file]
@@ -2118,9 +2162,9 @@ def add_addon_channels(addon,path,addon_name,method):
 
     conn.commit()
     conn.close()
-    dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Addon Path Added")
-
+    #dialog = xbmcgui.Dialog()
+    #dialog.notification("TV Listings (xmltv)","Done: Addon Path Added")
+    xbmc.executebuiltin('Container.Refresh')
 
 @plugin.route('/add_defaults/<addon>/<path>/<addon_name>')
 def add_defaults(addon,path,addon_name):
