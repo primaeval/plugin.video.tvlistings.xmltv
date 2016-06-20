@@ -2021,7 +2021,7 @@ def browse_addon_paths():
         if addon_name:
             label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR]" % (addon_name,path_name)
             item = {'label':label,
-            'path':plugin.url_for('browse_path', addon=addon_id, name=path_name, path=addon_path),
+            'path':plugin.url_for('browse_path', addon=addon_id, name=path_name.encode("utf8"), path=addon_path),
             'thumbnail':addon_icon}
             items.append(item)
 
@@ -2144,7 +2144,7 @@ def browse_path(addon,name,path):
         else:
             label = "[COLOR grey][B]%s[/B][/COLOR]" % dir
         item = {'label':label,
-        'path':plugin.url_for('browse_path', addon=addon, name=dir, path=path),
+        'path':plugin.url_for('browse_path', addon=addon, name=dir.encode("utf8"), path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
         items.append(item)
@@ -2188,7 +2188,7 @@ def add_addon_channels(addon,path,path_name,method):
     thumbnails = dict([[f["file"], f["thumbnail"]] for f in files])
 
     conn = get_conn()
-    conn.execute("INSERT OR REPLACE INTO addon_paths(addon, name, path, play_method) VALUES(?, ?, ?, ?)", [addon, path_name, path, method])
+    conn.execute("INSERT OR REPLACE INTO addon_paths(addon, name, path, play_method) VALUES(?, ?, ?, ?)", [addon, path_name.decode("utf8"), path, method])
 
     for file in sorted(labels):
         label = labels[file]
