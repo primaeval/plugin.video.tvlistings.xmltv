@@ -154,7 +154,6 @@ def channel_list():
                 method_label = "(Alternative Method)"
             label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
             channel_name,addon_name, method_label)
-            #label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
             item['path'] = path
             item['is_playable'] = is_playable
