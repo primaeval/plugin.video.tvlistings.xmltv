@@ -143,9 +143,7 @@ def channel_list():
             cc.execute('SELECT addon FROM addons WHERE path=?', [path])
             row = cc.fetchone()
             addon = row["addon"]
-            addon = xbmcaddon.Addon(addon)
-            addon_icon = addon.getAddonInfo('icon')
-            addon_name = remove_formatting(addon.getAddonInfo('name'))
+            (addon_name,addon_icon) = get_addon_info(addon_id)
             if method == "playable":
                 is_playable = True
                 method_label = "(Default Method)"
@@ -186,8 +184,8 @@ def channel_remap():
         path = row['path']
         if path in addons:
             addon = addons[path]
-            addon_name = remove_formatting(xbmcaddon.Addon(addon).getAddonInfo('name'))
-            addon_icon = xbmcaddon.Addon(addon).getAddonInfo('icon')
+            addon_id = xbmcaddon.Addon(addon)
+            (addon_name,addon_icon) = get_addon_info(addon_id)
             addon_label = " [COLOR green][B]%s[/B][/COLOR]" % addon_name
             img_url = addon_icon
         else:
@@ -323,12 +321,9 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         stream_name = row["name"]
         path = row["path"]
         icon = row["icon"]
-        try:
-            addon = xbmcaddon.Addon(addon_id)
-        except:
+        (addon_name,addon_icon) = get_addon_info(addon_id)
+        if not addon_name:
             continue
-        icon = addon.getAddonInfo('icon')
-        addon_name = remove_formatting(addon.getAddonInfo('name'))
         if channel_path == path:
             label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         else:
@@ -336,8 +331,8 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         item = {
         'label': label,
         'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, channel_name=channel_name, stream_name=stream_name.encode("utf8")),
-        'thumbnail': icon,
-        'icon': icon,
+        'thumbnail': addon_icon,
+        'icon': addon_icon,
         'is_playable': False,
         }
         url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
@@ -359,12 +354,9 @@ def channel_remap_all(channel_id,channel_name,channel_play):
 def channel_remap_streams(addon_id,channel_id,channel_name):
     global big_list_view
     big_list_view = True
-    addon = xbmcaddon.Addon(addon_id)
-    addon_name = remove_formatting(addon.getAddonInfo('name'))
-    if addon:
-        icon = addon.getAddonInfo('icon')
-    else:
-        icon = ''
+
+    (addon_name,addon_icon) = get_addon_info(addon_id)
+
     items = []
 
     conn = get_conn()
@@ -963,12 +955,9 @@ def addon_streams_to_channels(addon_id):
 def streams(addon_id):
     global big_list_view
     big_list_view = True
-    addon = xbmcaddon.Addon(addon_id)
-    if addon:
-        addon_icon = addon.getAddonInfo('icon')
-        addon_name = remove_formatting(addon.getAddonInfo('name'))
-    else:
-        addon_icon = ''
+
+    (addon_name,addon_icon) = get_addon_info(addon_id)
+
     items = []
 
     item = {'label':'[COLOR red][B]Use All as Default Shortcuts[/B][/COLOR]',
@@ -1037,9 +1026,8 @@ def channel_play(channel_id,channel_play):
     c = conn.cursor()
     c.execute('SELECT addon FROM addons WHERE path=?', [path])
     row = c.fetchone()
-    addon = row["addon"]
-    addon_name = remove_formatting(xbmcaddon.Addon(addon).getAddonInfo('name'))
-    addon_icon = xbmcaddon.Addon(addon).getAddonInfo('icon')
+    addon_id = row["addon"]
+    (addon_name,addon_icon) = get_addon_info(addon_id)
 
     item = {
     'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (
@@ -1083,12 +1071,7 @@ def set_addon_method(addon_id,stream_name,method):
 def stream_play(addon_id,stream_name,path):
     global big_list_view
     big_list_view = True
-    addon = xbmcaddon.Addon(addon_id)
-    if addon:
-        addon_icon = addon.getAddonInfo('icon')
-        addon_name = remove_formatting(addon.getAddonInfo('name'))
-    else:
-        icon = ''
+    (addon_name,addon_icon) = get_addon_info(addon_id)
     items = []
     conn = get_conn()
     c = conn.cursor()
@@ -2013,16 +1996,16 @@ def browse_addons():
          return
 
     addons = response["addons"]
-    ids = [a["addonid"] for a in addons]
+    addon_ids = [a["addonid"] for a in addons]
     #thumbnails = dict([[f["addonid"], f["thumbnail"]] for f in addons])
     items = []
-    for id in ids:
-        path = "plugin://%s" % id
+    for addon_id in addon_ids:
+        path = "plugin://%s" % addon_id
         path = urlencode_path(path)
-        (name,icon) = get_addon_info(id)
+        (name,icon) = get_addon_info(addon_id)
         if name:
             item = {'label':'[COLOR white]%s[/COLOR]' % name,
-            'path':plugin.url_for('browse_path', addon=id, path=path),
+            'path':plugin.url_for('browse_path', addon=addon_id, path=path),
             'thumbnail':icon}
             items.append(item)
 
