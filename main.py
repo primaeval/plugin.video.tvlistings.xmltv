@@ -914,6 +914,8 @@ def addon_streams():
                 'icon': icon,
                 'is_playable': False,
                 }
+                url = plugin.url_for('addon_streams_to_channels', addon_id=addon_id)
+                item['context_menu'] = [('[COLOR yellow]Set as Channels[/COLOR]', actions.update_view(url))]
                 items.append(item)
         except:
             pass
