@@ -30,7 +30,7 @@
 <category label="Logos">
 <setting label="Logo Type" type="enum" id="logo_type" default="Folder" values="Folder|Url" />
 <setting id="logo_url" label="logo folder Url" type="text" enable="eq(-1,1)" default="http://www.thaisatellite.tv/ftv/logos" />
-<setting id="logo_folder" label="logo Folder" type="folder" enable="eq(-2,0)" default="special://userdata/addon_data/plugin.video.tvlistings.xmltv/logos" />
+<setting id="logo_folder" label="logo Folder" type="folder" enable="eq(-2,0)" default="" />
 </category>
 <category label="Reminders">
 <setting id="watch_and_stop" label="Stop playback at end of watch timer" type="bool" default="true" />
@@ -43,12 +43,12 @@
 </category>
 <category label="Maintenance">
 <setting label="Refresh Addon Shortcut Folders" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/reload_addon_paths)"/>
+<setting type="sep"/>
 <setting label="Export Channel List" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/export_channels)"/>
 <setting type="sep"/>
 <setting label="[COLOR red]Clear Channels[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
 <setting label="[COLOR red]Clear Addon Shortcuts[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addons)"/>
-<setting label="[COLOR red]Clear Addon Paths[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addon_paths)"/>
-
+<setting label="[COLOR red]Clear Addon Folder Paths[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addon_paths)"/>
 <setting type="sep"/>
 <setting label="[COLOR red]Delete Everything![/COLOR]"  type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/nuke)"/>
 </category>
