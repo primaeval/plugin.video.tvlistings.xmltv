@@ -522,12 +522,14 @@ def clear_reminders():
 
 @plugin.route('/refresh_reminders')
 def refresh_reminders():
+    notify = False
     try:
         conn = get_conn()
         c = conn.cursor()
 
         c.execute('SELECT * FROM remind')
         for row in c:
+            notify = True
             start = row['start']
             t = datetime.fromtimestamp(float(start)) - datetime.now()
             timeToNotification = ((t.days * 86400) + t.seconds) / 60
@@ -538,6 +540,7 @@ def refresh_reminders():
 
         c.execute('SELECT * FROM watch')
         for row in c:
+            notify = True
             channel_id = row['channel']
             start = row['start']
             stop = row['stop']
@@ -558,8 +561,9 @@ def refresh_reminders():
         conn.close()
     except:
         pass
-    dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Refresh Reminders")
+    if notify:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Refresh Reminders")
 
 
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
