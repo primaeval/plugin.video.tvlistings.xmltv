@@ -2169,6 +2169,15 @@ def browse_path(addon,name,path):
         'path':plugin.url_for('browse_path', addon=addon, name=dir.encode("utf8"), path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
+        default_url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"), method="playable")
+        default_label = '[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]'
+        alternative_url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"), method="playable")
+        alternative_label = '[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]'
+        remove_url = plugin.url_for('remove_addon_path', path=path)
+        remove_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+        item['context_menu'] = [(default_label, actions.update_view(default_url)),
+        (alternative_label, actions.update_view(alternative_url)),
+        (remove_label, actions.update_view(remove_url))]
         items.append(item)
     for path in sorted(links):
         label = links[path]
