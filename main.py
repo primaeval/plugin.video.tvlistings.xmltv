@@ -914,6 +914,8 @@ def addon_streams():
                 'icon': icon,
                 'is_playable': False,
                 }
+                url = plugin.url_for('addon_streams_to_channels', addon_id=addon_id)
+                item['context_menu'] = [('[COLOR yellow]Set as Channels[/COLOR]', actions.update_view(url))]
                 items.append(item)
         except:
             pass
@@ -2026,10 +2028,22 @@ def browse_addon_paths():
         method = row["play_method"]
         (addon_name,addon_icon) = get_addon_info(addon_id)
         if addon_name:
-            label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR]" % (addon_name,path_name)
+            if method == "non_playable":
+                label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]" % (addon_name,path_name)
+                folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"), method="playable")
+                folder_label = '[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]'
+            else:
+                label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]" % (addon_name,path_name)
+                folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"), method="non_playable")
+                folder_label = '[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]'
+            remove_url = plugin.url_for('remove_addon_path', path=addon_path)
+            remove_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+
             item = {'label':label,
             'path':plugin.url_for('browse_path', addon=addon_id, name=path_name.encode("utf8"), path=addon_path),
             'thumbnail':addon_icon}
+            item['context_menu'] = [(folder_label, actions.update_view(folder_url)),
+            (remove_label, actions.update_view(remove_url))]
             items.append(item)
 
     sorted_items = sorted(items, key=lambda item: remove_formatting(item['label']).lower())
@@ -2051,7 +2065,6 @@ def browse_addons():
 
     addons = response["addons"]
     addon_ids = [a["addonid"] for a in addons]
-    #thumbnails = dict([[f["addonid"], f["thumbnail"]] for f in addons])
     items = []
     for addon_id in addon_ids:
         path = "plugin://%s" % addon_id
