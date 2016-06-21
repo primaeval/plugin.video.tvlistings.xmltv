@@ -926,6 +926,13 @@ def addon_streams():
     'is_playable': False,
     }
     items.append(item)
+    item = {
+    'label': '[COLOR yellow][B]%s[/B][/COLOR]' % ("Refresh Addon Shortcuts"),
+    'path': plugin.url_for(reload_addon_paths),
+    'thumbnail': get_icon_path('settings'),
+    'is_playable': False,
+    }
+    items.append(item)
     items= items + sorted_items
     return items
 
