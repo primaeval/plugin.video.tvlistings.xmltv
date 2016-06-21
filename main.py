@@ -189,6 +189,7 @@ def channel_remap():
                 addon_label = " [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]" % addon_name
             else:
                 addon_label = " [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]" % addon_name
+            img_url = addon_icon
         else:
             addon_label = ""
 
