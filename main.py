@@ -172,8 +172,8 @@ def channel_remap():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute('SELECT addon, path FROM addons')
-    addons = dict([[row["path"], row["addon"]] for row in c])
+    c.execute('SELECT addon, path, play_method FROM addons')
+    addons = dict([[row["path"], (row["addon"], row["play_method"])] for row in c])
 
     c.execute('SELECT * FROM channels')
     items = []
@@ -183,11 +183,12 @@ def channel_remap():
         img_url = row['icon']
         path = row['path']
         if path in addons:
-            addon = addons[path]
-            addon_id = xbmcaddon.Addon(addon)
+            (addon_id,method) = addons[path]
             (addon_name,addon_icon) = get_addon_info(addon_id)
-            addon_label = " [COLOR green][B]%s[/B][/COLOR]" % addon_name
-            img_url = addon_icon
+            if method == "playable":
+                addon_label = " [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]" % addon_name
+            else:
+                addon_label = " [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]" % addon_name
         else:
             addon_label = ""
 
@@ -195,7 +196,7 @@ def channel_remap():
             label = "[COLOR red][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
         else:
             label = "[COLOR yellow][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
-        item = {'label':label,'icon':img_url,'thumbnail':img_url}
+        item = {'label':label,'thumbnail':img_url}
         item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
         items.append(item)
     c.close()
@@ -2031,11 +2032,11 @@ def browse_addon_paths():
             if method == "non_playable":
                 label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]" % (addon_name,path_name)
                 folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"), method="playable")
-                folder_label = '[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]'
+                folder_label = '[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]'
             else:
                 label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]" % (addon_name,path_name)
                 folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"), method="non_playable")
-                folder_label = '[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]'
+                folder_label = '[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]'
             remove_url = plugin.url_for('remove_addon_path', path=addon_path)
             remove_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
 
@@ -2091,7 +2092,7 @@ def remove_addon_path(path):
     c.execute('DELETE FROM addon_paths WHERE path=?', [path])
     conn.commit()
     conn.close()
-
+    xbmc.executebuiltin('Container.Refresh')
 
 
 @plugin.route('/browse_path/<addon>/<name>/<path>')
@@ -2213,7 +2214,9 @@ def add_addon_channels(addon,path,path_name,method):
     for file in sorted(labels):
         label = labels[file]
         label = re.sub('\[.*?\]','',label)
-        icon = thumbnails[file]
+        icon = thumbnails[file].strip("/")
+        #icon = urllib.unquote(icon)
+        log(icon)
         conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [addon, label, file, method, icon])
 
     conn.commit()
