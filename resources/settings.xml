@@ -46,7 +46,7 @@
 <setting type="sep"/>
 <setting label="Export Channel List" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/export_channels)"/>
 <setting type="sep"/>
-<setting label="[COLOR red]Clear Channels[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
+<setting label="[COLOR red]Clear Channels and Programmes[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_channels)"/>
 <setting label="[COLOR red]Clear Addon Shortcuts[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addons)"/>
 <setting label="[COLOR red]Clear Addon Folder Paths[/COLOR]" type="action" action="XBMC.RunPlugin(plugin://plugin.video.tvlistings.xmltv/clear_addon_paths)"/>
 <setting type="sep"/>
