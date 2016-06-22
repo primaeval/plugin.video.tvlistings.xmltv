@@ -329,13 +329,18 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         stream_name = row["name"]
         path = row["path"]
         icon = row["icon"]
+        method = row["play_method"]
+        if method == "playable":
+            method_label = "Default Play"
+        else:
+            method_label = "Alternative Play"
         (addon_name,addon_icon) = get_addon_info(addon_id)
         if not addon_name:
             continue
         if channel_path == path:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR] [COLOR grey][B](%s)[/B][/COLOR]' % (stream_name, addon_name,method_label)
         else:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](%s)[/B][/COLOR]' % (stream_name, addon_name,method_label)
         item = {
         'label': label,
         'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, channel_name=channel_name, stream_name=stream_name.encode("utf8")),
@@ -1053,7 +1058,7 @@ def channel_play(channel_id,channel_play):
     (addon_name,addon_icon) = get_addon_info(addon_id)
 
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B](%s)[/B][/COLOR]' % (
     channel_name, addon_name, default_color,'Default Play'),
     'path': path,
     'thumbnail': addon_icon,
@@ -1063,7 +1068,7 @@ def channel_play(channel_id,channel_play):
     item['context_menu'] = [('[COLOR yellow]Set Default[/COLOR]', actions.update_view(url))]
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B](%s)[/B][/COLOR]' % (
     channel_name, addon_name, alternative_color,'Alternative Play'),
     'path': path,
     'thumbnail': addon_icon,
@@ -1131,7 +1136,7 @@ def stream_play(addon_id,stream_name,path):
     item['context_menu'] = [('[COLOR yellow]Set Default[/COLOR]', actions.update_view(url))]
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, addon_name, alternative_color,'Alternative Play'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B](%s)[/B][/COLOR]' % (stream_name, addon_name, alternative_color,'Alternative Play'),
     'path': path,
     'thumbnail': addon_icon,
     'is_playable': False,
@@ -1907,6 +1912,8 @@ def reminders():
     items = []
     for row in c:
         channel_id = row['channel']
+        if channel_id not in channels:
+            continue
         (channel_name, img_url) = channels[channel_id]
         title = row['title']
         sub_title = row['sub_title']
@@ -2276,9 +2283,9 @@ def activate_play(label,path,icon):
     global big_list_view
     big_list_view = True
     items = []
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Play[/B][/COLOR]" % label,'path':path,'is_playable':True, 'thumbnail':icon }
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR grey][B](Default Play)[/B][/COLOR]" % label,'path':path,'is_playable':True, 'thumbnail':icon }
     items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR green][B]Alternative Play[/B][/COLOR]" % label,'path':path,'is_playable':False, 'thumbnail':icon }
+    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR grey][B](Alternative Play)[/B][/COLOR]" % label,'path':path,'is_playable':False, 'thumbnail':icon }
     items.append(item)
     return items
 
