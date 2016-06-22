@@ -163,7 +163,10 @@ def channel_list():
             item['is_playable'] = is_playable
             edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
-            item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
+            search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
+            item['context_menu'] = [
+            ('[COLOR green]Search[/COLOR]', actions.update_view(search_url)),
+            ('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
             ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
     c.close()
@@ -1018,8 +1021,9 @@ def streams(addon_id):
         'is_playable': is_playable,
         }
         remap_url = plugin.url_for('stream_remap',stream_name=stream_name.encode("utf8"),path=path,icon=icon,method=method)
-        url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
-        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(url)),
+        method_url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        item['context_menu'] = [
+        ('[COLOR yellow]Play Method[/COLOR]', actions.update_view(method_url)),
         ('[COLOR red]Set as Default Channel[/COLOR]', actions.update_view(remap_url))]
         items.append(item)
 
