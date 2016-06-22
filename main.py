@@ -70,17 +70,22 @@ def clear_addons():
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Clear Addons")
 
+@plugin.route('/drop_channels')
+def drop_channels():
+    conn = get_conn()
+    conn.execute('DROP TABLE IF EXISTS channels')
+    conn.commit()
+    create_database_tables()
+
 
 @plugin.route('/clear_channels')
 def clear_channels():
     conn = get_conn()
     conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
-    conn.execute('DROP TABLE IF EXISTS channels')
     conn.commit()
     create_database_tables()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Clear Channels")
-    plugin.set_setting('xml_reload','true')
 
 
 @plugin.route('/export_channels')
@@ -1350,7 +1355,7 @@ def xml_channels():
                 else:
                     return
         else:
-            clear_channels()
+            drop_channels()
             pass
 
     xbmc.log("XMLTV UPDATE")
@@ -1360,7 +1365,6 @@ def xml_channels():
 
     xbmcvfs.mkdir('special://profile/addon_data/plugin.video.tvlistings.xmltv')
 
-
     conn = get_conn()
     conn.execute('PRAGMA foreign_keys = ON')
     conn.row_factory = sqlite3.Row
@@ -1369,7 +1373,6 @@ def xml_channels():
     c = conn.cursor()
     c.execute('SELECT id FROM channels')
     old_channel_ids = [row["id"] for row in c]
-
 
     dialog.notification("TV Listings (xmltv)","downloading xmltv file")
     if plugin.get_setting('xmltv_type') == '1':
