@@ -80,6 +80,7 @@ def clear_channels():
     create_database_tables()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Clear Channels")
+    plugin.set_setting('xml_reload','true')
 
 
 @plugin.route('/export_channels')
@@ -1006,8 +1007,10 @@ def streams(addon_id):
         'icon': icon,
         'is_playable': is_playable,
         }
+        remap_url = plugin.url_for('stream_remap',stream_name=stream_name.encode("utf8"),path=path,icon=icon,method=method)
         url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
-        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(url))]
+        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(url)),
+        ('[COLOR red]Set as Default Channel[/COLOR]', actions.update_view(remap_url))]
         items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -1081,6 +1084,15 @@ def set_addon_method(addon_id,stream_name,method):
     conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name.decode("utf8")])
     conn.commit()
     xbmc.executebuiltin('Container.Refresh')
+
+
+@plugin.route('/stream_remap/<stream_name>/<path>/<icon>/<method>')
+def stream_remap(stream_name,path,icon,method):
+    conn = get_conn()
+    conn.execute("UPDATE channels SET path=?, icon=?, play_method=? WHERE REPLACE(LOWER(name), ' ', '') LIKE REPLACE(LOWER(?), ' ', '')", [path,icon,method,stream_name])
+    conn.commit()
+    xbmc.executebuiltin('Container.Refresh')
+
 
 @plugin.route('/stream_play/<addon_id>/<stream_name>/<path>')
 def stream_play(addon_id,stream_name,path):
