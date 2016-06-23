@@ -159,8 +159,8 @@ def channel_list():
             label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
             channel_name,addon_name, method_label)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
-            item['path'] = path
-            item['is_playable'] = is_playable
+            item['path'] = plugin.url_for('play_media',path=path)#path
+            item['is_playable'] = False#is_playable
             edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
             search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
@@ -283,16 +283,26 @@ def search_addons(channel_name):
         stream_name,addon_name, method_label)
         item = {
         'label': label,
-        'path': path,
+        'path': plugin.url_for("play_media",path=path),#path,
         'thumbnail': addon_icon,
-        'is_playable': is_playable,
+        'is_playable': False,#is_playable,
         }
-        url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
-        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(url))]
+        #url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        url = plugin.url_for('play_media', path=path)
+        item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     return items
 
+    
+@plugin.route('/play_media/<path>/')
+def play_media(path):
+    cmd = "PlayMedia(%s)" % path
+    xbmc.executebuiltin(cmd)
+    dialog = xbmcgui.Dialog()
+    dialog.notification("TV Listings (xmltv)","Done: Play Media")
+       
+    
 @plugin.route('/channel_remap_search/<channel_id>/<channel_name>')
 def channel_remap_search(channel_id,channel_name):
     dialog = xbmcgui.Dialog()
@@ -351,8 +361,9 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         'icon': addon_icon,
         'is_playable': False,
         }
-        url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
-        item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(url))]
+        #url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        url = plugin.url_for('play_media', path=path)
+        item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     if channel_play == "True":
@@ -399,8 +410,9 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
         'icon': icon,
         'is_playable': False,
         }
-        url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
-        item['context_menu'] = [('[COLOR yellow]Edit Channel[/COLOR]', actions.update_view(url))]
+        #url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        url = plugin.url_for('play_media', path=path)
+        item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -899,8 +911,8 @@ def channel(channel_id,channel_name):
             label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
             channel_name,addon_name, method_label)
             item = {'label':label,'thumbnail':addon_icon}
-            item['path'] = path
-            item['is_playable'] = is_playable
+            item['path'] = plugin.url_for("play_media",path=path)#path
+            item['is_playable'] = False#is_playable
             edit_url = plugin.url_for('channel_play', channel_id=channel_id,channel_play=False)
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
             item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
@@ -1034,9 +1046,10 @@ def streams(addon_id):
         'is_playable': is_playable,
         }
         remap_url = plugin.url_for('stream_remap',stream_name=stream_name.encode("utf8"),path=path,icon=icon,method=method)
-        method_url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+        url = plugin.url_for('play_media', path=path)
+        #method_url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
         item['context_menu'] = [
-        ('[COLOR yellow]Play Method[/COLOR]', actions.update_view(method_url)),
+        ('[COLOR yellow]Play[/COLOR]', actions.update_view(url)),
         ('[COLOR red]Set as Default Channel[/COLOR]', actions.update_view(remap_url))]
         items.append(item)
 
@@ -1155,7 +1168,7 @@ def stream_play(addon_id,stream_name,path):
         is_playable = True
 
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, addon_name, default_color,'Default Play'),
+    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, addon_name, default_color,'Default Playx'),
     'path': path,
     'thumbnail': addon_icon,
     'is_playable': True,
@@ -2242,8 +2255,8 @@ def browse_path(addon,name,path):
         label = remove_formatting(label)
         icon = thumbnails[path]
         item = {'label':label.encode("utf8"),
-        'path':plugin.url_for('activate_play', label=label.encode("utf8"), path=path, icon=icon),
-        'is_playable':False,
+        'path':plugin.url_for('play_media',path=path),#plugin.url_for('activate_play', label=label.encode("utf8"), path=path, icon=icon),
+        'is_playable':False,#False,
         'thumbnail':icon}
         items.append(item)
 
