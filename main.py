@@ -1148,7 +1148,6 @@ def store_channels():
                     url = name_url[1]
                     if url:
                         icon = ''
-
                         conn.execute("INSERT OR IGNORE INTO addons(addon, name, path, icon) VALUES(?, ?, ?, ?, ?)", [addon, name, url, icon])
     except:
         pass
@@ -1195,6 +1194,7 @@ class FileWrapper(object):
 
     def tell(self):
         return self.bytesRead
+
 
 def create_database_tables():
     conn = get_conn()
@@ -2183,21 +2183,6 @@ def add_defaults(addon,path,addon_name):
             title = link
 
 
-@plugin.route('/activate_play/<label>/<path>/<icon>')
-def activate_play(label,path,icon):
-    global big_list_view
-    big_list_view = True
-    items = []
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR grey][B](Default Play)[/B][/COLOR]" % label,'path':path,'is_playable':True, 'thumbnail':icon }
-    items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] - [COLOR grey][B](Alternative Play)[/B][/COLOR]" % label,'path':path,'is_playable':False, 'thumbnail':icon }
-    items.append(item)
-    return items
-
-
-@plugin.route('/activate_link/<link>')
-def activate_link(link):
-    xbmc.executebuiltin('Container.Update("%s")' % link)
 
 
 @plugin.route('/')
