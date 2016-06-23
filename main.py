@@ -52,7 +52,7 @@ def get_tvdb_id(name):
 @plugin.route('/clear_addon_paths')
 def clear_addon_paths():
     conn = get_conn()
-    conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
+    conn.execute('UPDATE channels SET path=NULL')
     conn.execute('DROP TABLE IF EXISTS addon_paths')
     conn.commit()
     create_database_tables()
@@ -63,7 +63,7 @@ def clear_addon_paths():
 @plugin.route('/clear_addons')
 def clear_addons():
     conn = get_conn()
-    conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
+    conn.execute('UPDATE channels SET path=NULL')
     conn.execute('DROP TABLE IF EXISTS addons')
     conn.commit()
     create_database_tables()
@@ -81,7 +81,7 @@ def drop_channels():
 @plugin.route('/clear_channels')
 def clear_channels():
     conn = get_conn()
-    conn.execute('UPDATE channels SET path=NULL, play_method=NULL')
+    conn.execute('UPDATE channels SET path=NULL')
     conn.commit()
     create_database_tables()
     dialog = xbmcgui.Dialog()
@@ -142,7 +142,7 @@ def channel_list():
         channel_name = row['name']
         img_url = row['icon']
         path = row['path']
-        method = row["play_method"]
+
 
         if path:
             cc = conn.cursor()
@@ -150,23 +150,18 @@ def channel_list():
             row = cc.fetchone()
             addon_id = row["addon"]
             (addon_name,addon_icon) = get_addon_info(addon_id)
-            if method == "playable":
-                is_playable = True
-                method_label = "(Default Method)"
-            else:
-                is_playable = False
-                method_label = "(Alternative Method)"
-            label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
-            channel_name,addon_name, method_label)
+
+            label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (
+            channel_name,addon_name)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
-            item['path'] = plugin.url_for('play_media',path=path)#path
-            item['is_playable'] = False#is_playable
-            edit_url = plugin.url_for('channel_play', channel_id=channel_id.encode("utf8"),channel_play=False)
+            item['path'] = plugin.url_for('play_media',path=path)
+            item['is_playable'] = False
+
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
             search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
             item['context_menu'] = [
             ('[COLOR green]Search[/COLOR]', actions.update_view(search_url)),
-            ('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
+
             ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
     c.close()
@@ -181,8 +176,8 @@ def channel_remap():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute('SELECT addon, path, play_method FROM addons')
-    addons = dict([[row["path"], (row["addon"], row["play_method"])] for row in c])
+    c.execute('SELECT addon, path FROM addons')
+    addons = dict([[row["path"], (row["addon"])] for row in c])
 
     c.execute('SELECT * FROM channels')
     items = []
@@ -192,12 +187,10 @@ def channel_remap():
         img_url = row['icon']
         path = row['path']
         if path in addons:
-            (addon_id,method) = addons[path]
+            (addon_id) = addons[path]
             (addon_name,addon_icon) = get_addon_info(addon_id)
-            if method == "playable":
-                addon_label = " [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]" % addon_name
-            else:
-                addon_label = " [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]" % addon_name
+
+            addon_label = " [COLOR green][B]%s[/B][/COLOR]" % addon_name
             img_url = addon_icon
         else:
             addon_label = ""
@@ -268,41 +261,36 @@ def search_addons(channel_name):
         path = row["path"]
         stream_name = row["name"]
         icon = row["icon"]
-        method = row["play_method"]
+
         addon_id = row["addon"]
         (addon_name,addon_icon) = get_addon_info(addon_id)
         if not addon_name:
             continue
-        if method == "playable":
-            is_playable = True
-            method_label = "(Default Method)"
-        else:
-            is_playable = False
-            method_label = "(Alternative Method)"
-        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
-        stream_name,addon_name, method_label)
+
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (
+        stream_name,addon_name)
         item = {
         'label': label,
-        'path': plugin.url_for("play_media",path=path),#path,
+        'path': plugin.url_for("play_media",path=path)
         'thumbnail': addon_icon,
-        'is_playable': False,#is_playable,
+        'is_playable': False
         }
-        #url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+
         url = plugin.url_for('play_media', path=path)
         item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     return items
 
-    
+
 @plugin.route('/play_media/<path>/')
 def play_media(path):
     cmd = "PlayMedia(%s)" % path
     xbmc.executebuiltin(cmd)
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Play Media")
-       
-    
+
+
 @plugin.route('/channel_remap_search/<channel_id>/<channel_name>')
 def channel_remap_search(channel_id,channel_name):
     dialog = xbmcgui.Dialog()
@@ -342,18 +330,15 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         stream_name = row["name"]
         path = row["path"]
         icon = row["icon"]
-        method = row["play_method"]
-        if method == "playable":
-            method_label = "Default Play"
-        else:
-            method_label = "Alternative Play"
+
+
         (addon_name,addon_icon) = get_addon_info(addon_id)
         if not addon_name:
             continue
         if channel_path == path:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR] [COLOR grey][B](%s)[/B][/COLOR]' % (stream_name, addon_name,method_label)
+            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         else:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B](%s)[/B][/COLOR]' % (stream_name, addon_name,method_label)
+            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         item = {
         'label': label,
         'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, channel_name=channel_name, stream_name=stream_name.encode("utf8")),
@@ -361,18 +346,18 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         'icon': addon_icon,
         'is_playable': False,
         }
-        #url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+
         url = plugin.url_for('play_media', path=path)
         item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     if channel_play == "True":
         if channel_path:
-            item = {'label':"[COLOR yellow]%s[/COLOR] [COLOR red]%s[/COLOR]" % (channel_name,'Play Method'),
-            'path': plugin.url_for('channel_play', channel_id=channel_id,channel_play=False),
+            item = {'label':"[COLOR yellow]%s[/COLOR] [COLOR red]%s[/COLOR]" % (channel_name,'Play'),
+            'path': plugin.url_for('play_media', path=channel_path),
             'thumbnail':channel_icon,
             'is_playable':False}
-            #items.append(item)
+
 
     return items
 
@@ -410,7 +395,7 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
         'icon': icon,
         'is_playable': False,
         }
-        #url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+
         url = plugin.url_for('play_media', path=path)
         item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
@@ -442,15 +427,15 @@ def reset_channel(channel_id):
 def channel_remap_stream(addon_id,channel_id,channel_name,stream_name):
     conn = get_conn()
     c = conn.cursor()
-    c.execute('SELECT path, play_method, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name.decode("utf8")])
+    c.execute('SELECT path, icon FROM addons WHERE addon=? AND name=?', [addon_id, stream_name.decode("utf8")])
     row = c.fetchone()
     path = row["path"]
     icon = row["icon"]
-    method = row["play_method"]
+
     if icon:
-        c.execute('UPDATE channels SET path=?, play_method=?, icon=? WHERE id=?', [path,method,icon,channel_id.decode("utf8")])
+        c.execute('UPDATE channels SET path=?, icon=? WHERE id=?', [path,icon,channel_id.decode("utf8")])
     else:
-        c.execute('UPDATE channels SET path=?, play_method=? WHERE id=?', [path,method,channel_id.decode("utf8")])
+        c.execute('UPDATE channels SET path=? WHERE id=?', [path,channel_id.decode("utf8")])
     conn.commit()
     if plugin.get_setting("refresh") == 'true':
         xbmc.executebuiltin('Container.Refresh')
@@ -484,14 +469,12 @@ def play_channel(channel_id,title,start):
     c.execute("SELECT * FROM channels WHERE id=?", [channel_id.decode("utf8")])
     row = c.fetchone()
     channel_path = row["path"]
-    method = row["play_method"]
+
     plugin.set_setting('playing_channel',channel_id)
     plugin.set_setting('playing_title',title)
     plugin.set_setting('playing_start',start)
-    if method == "not_playable":
-        xbmc.executebuiltin('Container.Update("%s")' % channel_path)
-    else:
-        xbmc.executebuiltin('PlayMedia(%s)' % channel_path)
+
+    play_media(channel_path)
 
 
 @plugin.route('/stop_playing/<channel_id>/<title>/<start>')
@@ -547,6 +530,7 @@ def clear_reminders():
     conn.close()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Clear Reminders")
+
 
 @plugin.route('/refresh_reminders')
 def refresh_reminders():
@@ -893,14 +877,9 @@ def channel(channel_id,channel_name):
     row = c.fetchone()
     path = row["path"]
     icon = row["icon"]
-    method = row["play_method"]
 
-    if method == "playable":
-        is_playable = True
-        method_label = "(Default Method)"
-    else:
-        is_playable = False
-        method_label = "(Alternative Method)"
+
+
     choose = False
     if path:
         c.execute('SELECT addon FROM addons WHERE path=?', [path])
@@ -908,14 +887,14 @@ def channel(channel_id,channel_name):
         addon = row["addon"]
         (addon_name,addon_icon) = get_addon_info(addon)
         if addon_name:
-            label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
-            channel_name,addon_name, method_label)
+            label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR]" % (
+            channel_name,addon_name)
             item = {'label':label,'thumbnail':addon_icon}
-            item['path'] = plugin.url_for("play_media",path=path)#path
-            item['is_playable'] = False#is_playable
-            edit_url = plugin.url_for('channel_play', channel_id=channel_id,channel_play=False)
+            item['path'] = plugin.url_for("play_media",path=path)
+            item['is_playable'] = False
+            play_url = plugin.url_for('play_media', path=path)
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
-            item['context_menu'] = [('[COLOR yellow]Play Method[/COLOR]', actions.update_view(edit_url)),
+            item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(play_url)),
             ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
         else:
@@ -989,15 +968,15 @@ def addon_streams_to_channels(addon_id):
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT * FROM addons WHERE addon=?', [addon_id])
-    channels = dict((row['name'], (row['path'], row["play_method"], row['icon'])) for row in c)
+    channels = dict((row['name'], (row['path'], row['icon'])) for row in c)
 
     for channel_name in channels:
-        (path, method, icon) = channels[channel_name]
+        (path, icon) = channels[channel_name]
         channel_name = re.sub(r'\(.*?\)$','',channel_name).strip()
         if icon:
-            c.execute('UPDATE channels SET path=?, play_method=?, icon=? WHERE name=?', [path, method, icon, channel_name])
+            c.execute('UPDATE channels SET path=?, icon=? WHERE name=?', [path, icon, channel_name])
         else:
-            c.execute('UPDATE channels SET path=?, play_method=? WHERE name=?', [path, method, channel_name])
+            c.execute('UPDATE channels SET path=? WHERE name=?', [path, channel_name])
 
     conn.commit()
     conn.close()
@@ -1028,26 +1007,21 @@ def streams(addon_id):
         path = row["path"]
         stream_name = row["name"]
         icon = row["icon"]
-        method = row["play_method"]
+
         addon_id = row["addon"]
-        if method == "playable":
-            is_playable = True
-            method_label = "(Default Method)"
-        else:
-            is_playable = False
-            method_label = "(Alternative Method)"
-        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR grey][B]%s[/B][/COLOR]" % (
-        stream_name,addon_name, method_label)
+
+        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (
+        stream_name,addon_name)
         item = {
         'label': label,
-        'path': path,
+        'path': plugin.url_for("play_media",path=path),
         'thumbnail': icon,
         'icon': icon,
-        'is_playable': is_playable,
+        'is_playable': False,
         }
-        remap_url = plugin.url_for('stream_remap',stream_name=stream_name.encode("utf8"),path=path,icon=icon,method=method)
+        remap_url = plugin.url_for('stream_remap',stream_name=stream_name.encode("utf8"),path=path,icon=icon)
         url = plugin.url_for('play_media', path=path)
-        #method_url = plugin.url_for('stream_play', addon_id=addon_id, stream_name=stream_name.encode("utf8"),path=path)
+
         item['context_menu'] = [
         ('[COLOR yellow]Play[/COLOR]', actions.update_view(url)),
         ('[COLOR red]Set as Default Channel[/COLOR]', actions.update_view(remap_url))]
@@ -1058,86 +1032,18 @@ def streams(addon_id):
 
 
 
-@plugin.route('/channel_play/<channel_id>/<channel_play>')
-def channel_play(channel_id,channel_play):
-    global big_list_view
-    big_list_view = True
-    items = []
+
+
+
+
+
+
+
+
+@plugin.route('/stream_remap/<stream_name>/<path>/<icon>/')
+def stream_remap(stream_name,path,icon):
     conn = get_conn()
-    c = conn.cursor()
-    c.execute('SELECT * FROM channels WHERE id=?', [channel_id.decode("utf8")])
-    row = c.fetchone()
-    channel_name = row["name"]
-    path = row["path"]
-    icon = row["icon"]
-    method = row["play_method"]
-    if method == "not_playable":
-        default_color = "grey"
-        alternative_color = "red"
-        is_playable = False
-    else:
-        default_color = "red"
-        alternative_color = "grey"
-        is_playable = True
-
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute('SELECT addon FROM addons WHERE path=?', [path])
-    row = c.fetchone()
-    addon_id = row["addon"]
-    (addon_name,addon_icon) = get_addon_info(addon_id)
-
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B](%s)[/B][/COLOR]' % (
-    channel_name, addon_name, default_color,'Default Play'),
-    'path': path,
-    'thumbnail': addon_icon,
-    'is_playable': True,
-    }
-    url = plugin.url_for(set_channel_method, channel_id=channel_id, method='playable')
-    item['context_menu'] = [('[COLOR yellow]Set Default[/COLOR]', actions.update_view(url))]
-    items.append(item)
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B](%s)[/B][/COLOR]' % (
-    channel_name, addon_name, alternative_color,'Alternative Play'),
-    'path': path,
-    'thumbnail': addon_icon,
-    'is_playable': False,
-    }
-    url = plugin.url_for(set_channel_method, channel_id=channel_id, method='not_playable')
-    item['context_menu'] = [('[COLOR yellow]Set Alternative[/COLOR]', actions.update_view(url))]
-    items.append(item)
-
-    return items
-
-@plugin.route('/set_channel_method/<channel_id>/<method>')
-def set_channel_method(channel_id,method):
-    conn = get_conn()
-    conn.execute('UPDATE channels SET play_method=? WHERE id=?', [method,channel_id.decode("utf8")])
-    conn.commit()
-    if plugin.get_setting("refresh") == 'true':
-        xbmc.executebuiltin('Container.Refresh')
-    else:
-        dialog = xbmcgui.Dialog()
-        dialog.notification("TV Listings (xmltv)","Done: Update Play Method")
-
-
-@plugin.route('/set_addon_method/<addon_id>/<stream_name>/<method>')
-def set_addon_method(addon_id,stream_name,method):
-    conn = get_conn()
-    conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name.decode("utf8")])
-    conn.commit()
-    if plugin.get_setting("refresh") == 'true':
-        xbmc.executebuiltin('Container.Refresh')
-    else:
-        dialog = xbmcgui.Dialog()
-        dialog.notification("TV Listings (xmltv)","Done: Update Play Method")
-
-
-@plugin.route('/stream_remap/<stream_name>/<path>/<icon>/<method>')
-def stream_remap(stream_name,path,icon,method):
-    conn = get_conn()
-    conn.execute("UPDATE channels SET path=?, icon=?, play_method=? WHERE REPLACE(LOWER(name), ' ', '') LIKE REPLACE(LOWER(?), ' ', '')", [path,icon,method,stream_name])
+    conn.execute("UPDATE channels SET path=?, icon=? WHERE REPLACE(LOWER(name), ' ', '') LIKE REPLACE(LOWER(?), ' ', '')", [path,icon,stream_name])
     conn.commit()
     if plugin.get_setting("refresh") == 'true':
         xbmc.executebuiltin('Container.Refresh')
@@ -1145,48 +1051,7 @@ def stream_remap(stream_name,path,icon,method):
         dialog = xbmcgui.Dialog()
         dialog.notification("TV Listings (xmltv)","Done: Update Shortcut")
 
-@plugin.route('/stream_play/<addon_id>/<stream_name>/<path>')
-def stream_play(addon_id,stream_name,path):
-    global big_list_view
-    big_list_view = True
-    (addon_name,addon_icon) = get_addon_info(addon_id)
-    items = []
-    conn = get_conn()
-    c = conn.cursor()
-    c.execute('SELECT * FROM addons WHERE addon=? AND path=?', [addon_id,path])
-    row = c.fetchone()
-    icon = row["icon"]
-    method = row["play_method"]
 
-    if method == "not_playable":
-        default_color = "grey"
-        alternative_color = "red"
-        is_playable = False
-    else:
-        default_color = "red"
-        alternative_color = "grey"
-        is_playable = True
-
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B]%s[/B][/COLOR]' % (stream_name, addon_name, default_color,'Default Playx'),
-    'path': path,
-    'thumbnail': addon_icon,
-    'is_playable': True,
-    }
-    url = plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='playable')
-    item['context_menu'] = [('[COLOR yellow]Set Default[/COLOR]', actions.update_view(url))]
-    items.append(item)
-    item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR] [COLOR %s][B](%s)[/B][/COLOR]' % (stream_name, addon_name, alternative_color,'Alternative Play'),
-    'path': path,
-    'thumbnail': addon_icon,
-    'is_playable': False,
-    }
-    url = plugin.url_for(set_addon_method, addon_id=addon_id, stream_name=stream_name, method='not_playable')
-    item['context_menu'] = [('[COLOR yellow]Set Alternative[/COLOR]', actions.update_view(url))]
-    items.append(item)
-
-    return items
 
 
 def utc2local (utc):
@@ -1287,8 +1152,8 @@ def store_channels():
                     url = name_url[1]
                     if url:
                         icon = ''
-                        play_method = ''
-                        conn.execute("INSERT OR IGNORE INTO addons(addon, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [addon, name, url, play_method, icon])
+
+                        conn.execute("INSERT OR IGNORE INTO addons(addon, name, path, icon) VALUES(?, ?, ?, ?, ?)", [addon, name, url, icon])
     except:
         pass
     conn.commit()
@@ -1339,11 +1204,11 @@ def create_database_tables():
     conn = get_conn()
     conn.execute('PRAGMA foreign_keys = ON')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS addon_paths(addon TEXT, name TEXT, path TEXT, play_method TEXT, PRIMARY KEY (path))')
+    'CREATE TABLE IF NOT EXISTS addon_paths(addon TEXT, name TEXT, path TEXT, PRIMARY KEY (path))')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
+    'CREATE TABLE IF NOT EXISTS addons(addon TEXT, name TEXT, path TEXT, icon TEXT, PRIMARY KEY (addon, name, path))')
     conn.execute(
-    'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, play_method TEXT, icon TEXT, PRIMARY KEY (id))')
+    'CREATE TABLE IF NOT EXISTS channels(id TEXT, name TEXT, path TEXT, icon TEXT, PRIMARY KEY (id))')
     conn.execute(
     'CREATE TABLE IF NOT EXISTS programmes(channel TEXT, title TEXT, sub_title TEXT, start INTEGER, stop INTEGER, date INTEGER, description TEXT, series INTEGER, episode INTEGER, categories TEXT, PRIMARY KEY(channel, start))')
     conn.execute(
@@ -1477,7 +1342,7 @@ def xml_channels():
                         if path:
                             icon = "%s/%s.png" % (path,display_name)
 
-                conn.execute("INSERT OR IGNORE INTO channels(id, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [id, display_name, '', '', icon])
+                conn.execute("INSERT OR IGNORE INTO channels(id, name, path, icon) VALUES(?, ?, ?, ?)", [id, display_name, '', icon])
                 if (now - last).seconds > 0.5:
                     dialog.notification("TV Listings (xmltv)","loading channels: "+display_name)
                     last = now
@@ -2094,17 +1959,14 @@ def browse_addon_paths():
         addon_id = row["addon"]
         addon_path = row["path"]
         path_name = row["name"]
-        method = row["play_method"]
+
         (addon_name,addon_icon) = get_addon_info(addon_id)
         if addon_name:
-            if method == "non_playable":
-                label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]" % (addon_name,path_name)
-                folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"), method="playable")
-                folder_label = '[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]'
-            else:
-                label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]" % (addon_name,path_name)
-                folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"), method="non_playable")
-                folder_label = '[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]'
+
+            label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR]" % (addon_name,path_name)
+            folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"))
+            folder_label = '[COLOR green][B]Add Folder[/B][/COLOR]'
+
             remove_url = plugin.url_for('remove_addon_path', path=addon_path)
             remove_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
 
@@ -2196,30 +2058,18 @@ def browse_path(addon,name,path):
     row = c.fetchone()
     if row is None:
         default_menu = True
-        alternative_menu = True
         remove_menu = False
     else:
-        method = row["play_method"]
-        if method == "playable":
-            alternative_menu = True
-            default_menu = False
-        else:
-            default_menu = True#
-            alternative_menu = False
+        default_menu = False
         remove_menu = True
 
     if default_menu:
-        item = {'label':'[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]',
-        'path':plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=name, method="playable"),
+        item = {'label':'[COLOR red][B]Add Folder[/B][/COLOR]',
+        'path':plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=name),
         'thumbnail':addon_icon,
         'is_playable':False}
         top_items.append(item)
-    if alternative_menu:
-        item = {'label':'[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]',
-        'path':plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=name, method="not_playable"),
-        'thumbnail':addon_icon,
-        'is_playable':False}
-        top_items.append(item)
+
     if remove_menu:
         item = {'label':'[COLOR yellow][B]Remove Folder[/B][/COLOR]',
         'path':plugin.url_for('remove_addon_path', path=path),
@@ -2240,14 +2090,13 @@ def browse_path(addon,name,path):
         'path':plugin.url_for('browse_path', addon=addon, name=dir.encode("utf8"), path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
-        default_url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"), method="playable")
-        default_label = '[COLOR red][B]Add Folder[/B][/COLOR] [COLOR grey][B](Default Play)[/B][/COLOR]'
-        alternative_url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"), method="non_playable")
-        alternative_label = '[COLOR green][B]Add Folder[/B][/COLOR] [COLOR grey][B](Alternative Play)[/B][/COLOR]'
+        default_url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"))
+        default_label = '[COLOR red][B]Add Folder[/B][/COLOR]'
+
         remove_url = plugin.url_for('remove_addon_path', path=path)
         remove_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
         item['context_menu'] = [(default_label, actions.update_view(default_url)),
-        (alternative_label, actions.update_view(alternative_url)),
+
         (remove_label, actions.update_view(remove_url))]
         items.append(item)
     for path in sorted(links):
@@ -2255,8 +2104,8 @@ def browse_path(addon,name,path):
         label = remove_formatting(label)
         icon = thumbnails[path]
         item = {'label':label.encode("utf8"),
-        'path':plugin.url_for('play_media',path=path),#plugin.url_for('activate_play', label=label.encode("utf8"), path=path, icon=icon),
-        'is_playable':False,#False,
+        'path':plugin.url_for('play_media',path=path),
+        'is_playable':False,
         'thumbnail':icon}
         items.append(item)
 
@@ -2270,7 +2119,7 @@ def reload_addon_paths():
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT * FROM addon_paths')
-    addon_paths = [(row["addon"],row["path"],row["name"],row["play_method"]) for row in c]
+    addon_paths = [(row["addon"],row["path"],row["name"]) for row in c]
     for addon_path in addon_paths:
         add_addon_channels(addon_path[0],addon_path[1],addon_path[2],addon_path[3])
     dialog = xbmcgui.Dialog()
@@ -2278,8 +2127,8 @@ def reload_addon_paths():
 
 
 
-@plugin.route('/add_addon_channels/<addon>/<path>/<path_name>/<method>')
-def add_addon_channels(addon,path,path_name,method):
+@plugin.route('/add_addon_channels/<addon>/<path>/<path_name>/')
+def add_addon_channels(addon,path,path_name):
     try:
         response = RPC.files.get_directory(media="files", directory=path, properties=["thumbnail"])
     except:
@@ -2290,15 +2139,15 @@ def add_addon_channels(addon,path,path_name,method):
     thumbnails = dict([[f["file"], f["thumbnail"]] for f in files])
 
     conn = get_conn()
-    conn.execute("INSERT OR REPLACE INTO addon_paths(addon, name, path, play_method) VALUES(?, ?, ?, ?)", [addon, path_name.decode("utf8"), path, method])
+    conn.execute("INSERT OR REPLACE INTO addon_paths(addon, name, path) VALUES(?, ?, ?)", [addon, path_name.decode("utf8"), path])
 
     for file in sorted(labels):
         label = labels[file]
         label = re.sub('\[.*?\]','',label)
         icon = thumbnails[file].strip("/")
-        #icon = urllib.unquote(icon)
+
         log(icon)
-        conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, play_method, icon) VALUES(?, ?, ?, ?, ?)", [addon, label, file, method, icon])
+        conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, icon) VALUES(?, ?, ?, ?)", [addon, label, file, icon])
 
     conn.commit()
     conn.close()
