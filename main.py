@@ -271,7 +271,7 @@ def search_addons(channel_name):
         stream_name,addon_name)
         item = {
         'label': label,
-        'path': plugin.url_for("play_media",path=path)
+        'path': plugin.url_for("play_media",path=path),
         'thumbnail': addon_icon,
         'is_playable': False
         }
@@ -2121,7 +2121,7 @@ def reload_addon_paths():
     c.execute('SELECT * FROM addon_paths')
     addon_paths = [(row["addon"],row["path"],row["name"]) for row in c]
     for addon_path in addon_paths:
-        add_addon_channels(addon_path[0],addon_path[1],addon_path[2],addon_path[3])
+        add_addon_channels(addon_path[0],addon_path[1],addon_path[2])
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Addon Paths Refreshed")
 
