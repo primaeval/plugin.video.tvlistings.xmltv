@@ -276,8 +276,6 @@ def search_addons(channel_name):
         'is_playable': False
         }
 
-        url = plugin.url_for('play_media', path=path)
-        item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     return items
@@ -892,10 +890,8 @@ def channel(channel_id,channel_name):
             item = {'label':label,'thumbnail':addon_icon}
             item['path'] = plugin.url_for("play_media",path=path)
             item['is_playable'] = False
-            play_url = plugin.url_for('play_media', path=path)
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
-            item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(play_url)),
-            ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
+            item['context_menu'] = [('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
         else:
             choose = True
