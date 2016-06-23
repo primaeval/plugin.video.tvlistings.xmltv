@@ -285,8 +285,7 @@ def search_addons(channel_name):
 def play_media(path):
     cmd = "PlayMedia(%s)" % path
     xbmc.executebuiltin(cmd)
-    dialog = xbmcgui.Dialog()
-    dialog.notification("TV Listings (xmltv)","Done: Play Media")
+
 
 
 @plugin.route('/channel_remap_search/<channel_id>/<channel_name>')
