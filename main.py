@@ -1953,6 +1953,9 @@ def browse_addon_paths():
     conn = get_conn()
     c = conn.cursor()
     c.execute("SELECT * FROM addon_paths")
+    cc = conn.cursor()
+    cc.execute("SELECT path,name FROM addon_paths")
+    paths = [row["path"] for row in cc]
 
     items = []
     for row in c:
@@ -1964,17 +1967,17 @@ def browse_addon_paths():
         if addon_name:
 
             label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR]" % (addon_name,path_name)
-            folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=path_name.encode("utf8"))
-            folder_label = '[COLOR green][B]Add Folder[/B][/COLOR]'
-
-            remove_url = plugin.url_for('remove_addon_path', path=addon_path)
-            remove_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+            if addon_path not in paths:
+                folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=name.encode("utf8"))
+                folder_label = '[COLOR red][B]Add Folder[/B][/COLOR]'
+            else:
+                folder_url = plugin.url_for('remove_addon_path', path=addon_path)
+                folder_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
 
             item = {'label':label,
             'path':plugin.url_for('browse_path', addon=addon_id, name=path_name.encode("utf8"), path=addon_path),
             'thumbnail':addon_icon}
-            item['context_menu'] = [(folder_label, actions.update_view(folder_url)),
-            (remove_label, actions.update_view(remove_url))]
+            item['context_menu'] = [(folder_label, actions.update_view(folder_url))]
             items.append(item)
 
     sorted_items = sorted(items, key=lambda item: remove_formatting(item['label']).lower())
@@ -1993,8 +1996,9 @@ def browse_addons():
     c = conn.cursor()
     c.execute("SELECT addon,path FROM addon_paths")
     addon_paths = [row["addon"] for row in c]
-    c.execute("SELECT path,name FROM addon_paths")
-    paths = [row["path"] for row in c]
+    cc = conn.cursor()
+    cc.execute("SELECT path,name FROM addon_paths")
+    paths = [row["path"] for row in cc]
 
     addons = response["addons"]
     addon_ids = [a["addonid"] for a in addons]
