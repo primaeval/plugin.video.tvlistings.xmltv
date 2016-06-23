@@ -8,6 +8,7 @@
 <setting type="sep"/>
 <setting label="Prime Time" type="enum" id="prime" default="21" values="$HOURS" />
 <setting type="sep"/>
+<setting id="refresh" label="Refresh Display after Commands" type="bool" default="true" />
 <setting id="view_mode" label="Skin's Big List View Mode" type="number" default="51" />
 </category>
 <category label="XMLTV Data">

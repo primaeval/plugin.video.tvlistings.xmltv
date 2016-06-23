@@ -440,7 +440,8 @@ def channel_remap_stream(addon_id,channel_id,channel_name,stream_name):
     else:
         c.execute('UPDATE channels SET path=?, play_method=? WHERE id=?', [path,method,channel_id.decode("utf8")])
     conn.commit()
-    xbmc.executebuiltin('Container.Refresh')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
 
 
 @plugin.route('/select_channel/<channel_id>/<channel_name>')
@@ -490,7 +491,8 @@ def stop_playing(channel_id,title,start):
     plugin.set_setting('playing_channel','')
     plugin.set_setting('playing_title','')
     plugin.set_setting('playing_start','')
-    xbmc.executebuiltin('PlayerControl(Stop)')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('PlayerControl(Stop)')
 
 
 def get_conn():
@@ -597,9 +599,11 @@ def remind(channel_id,channel_name,title,season,episode,start,stop):
     [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
-    #dialog = xbmcgui.Dialog()
-    #dialog.notification("TV Listings (xmltv)","Done: Remind")
-    xbmc.executebuiltin('Container.Refresh')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Remind")
 
 
 @plugin.route('/watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
@@ -624,9 +628,12 @@ def watch(channel_id,channel_name,title,season,episode,start,stop):
     [row['channel'] ,row['title'] , row['sub_title'] , row['start'] , row['stop'], row['date'], row['description'] , row['series'] , row['episode'] , row['categories']])
     conn.commit()
     conn.close()
-    #dialog = xbmcgui.Dialog()
-    #dialog.notification("TV Listings (xmltv)","Done: Watch")
-    xbmc.executebuiltin('Container.Refresh')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Watch")
+
 
 @plugin.route('/cancel_remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
 def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
@@ -642,9 +649,12 @@ def cancel_remind(channel_id,channel_name,title,season,episode,start,stop):
 
     conn.commit()
     conn.close()
-    #dialog = xbmcgui.Dialog()
-    #dialog.notification("TV Listings (xmltv)","Done: Cancel Remind")
-    xbmc.executebuiltin('Container.Refresh')
+
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Cancel Remind")
 
 
 @plugin.route('/cancel_watch/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
@@ -662,9 +672,12 @@ def cancel_watch(channel_id,channel_name,title,season,episode,start,stop):
     c.execute('DELETE FROM watch WHERE channel=? AND start=?', [channel_id.decode("utf8"),start])
     conn.commit()
     conn.close()
-    #dialog = xbmcgui.Dialog()
-    #dialog.notification("TV Listings (xmltv)","Done: Cancel Watch")
-    xbmc.executebuiltin('Container.Refresh')
+
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Cancel Watch")
 
 
 @plugin.route('/play/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
@@ -847,8 +860,8 @@ def activate_channel(addon_id,channel_name):
     row = c.fetchone()
     link = row["path"]
     icon = row["icon"]
-
-    xbmc.executebuiltin('Container.Update("%s")' % link)
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Update("%s")' % link)
 
 
 @plugin.route('/channel/<channel_id>/<channel_name>')
@@ -1089,7 +1102,11 @@ def set_channel_method(channel_id,method):
     conn = get_conn()
     conn.execute('UPDATE channels SET play_method=? WHERE id=?', [method,channel_id.decode("utf8")])
     conn.commit()
-    xbmc.executebuiltin('Container.Refresh')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Update Play Method")
 
 
 @plugin.route('/set_addon_method/<addon_id>/<stream_name>/<method>')
@@ -1097,7 +1114,11 @@ def set_addon_method(addon_id,stream_name,method):
     conn = get_conn()
     conn.execute('UPDATE addons SET play_method=? WHERE addon=? AND name=?', [method, addon_id, stream_name.decode("utf8")])
     conn.commit()
-    xbmc.executebuiltin('Container.Refresh')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Update Play Method")
 
 
 @plugin.route('/stream_remap/<stream_name>/<path>/<icon>/<method>')
@@ -1105,8 +1126,11 @@ def stream_remap(stream_name,path,icon,method):
     conn = get_conn()
     conn.execute("UPDATE channels SET path=?, icon=?, play_method=? WHERE REPLACE(LOWER(name), ' ', '') LIKE REPLACE(LOWER(?), ' ', '')", [path,icon,method,stream_name])
     conn.commit()
-    xbmc.executebuiltin('Container.Refresh')
-
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Update Shortcut")
 
 @plugin.route('/stream_play/<addon_id>/<stream_name>/<path>')
 def stream_play(addon_id,stream_name,path):
@@ -2123,7 +2147,11 @@ def remove_addon_path(path):
     c.execute('DELETE FROM addon_paths WHERE path=?', [path])
     conn.commit()
     conn.close()
-    xbmc.executebuiltin('Container.Refresh')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Removed")
 
 
 @plugin.route('/browse_path/<addon>/<name>/<path>')
@@ -2261,9 +2289,12 @@ def add_addon_channels(addon,path,path_name,method):
 
     conn.commit()
     conn.close()
-    #dialog = xbmcgui.Dialog()
-    #dialog.notification("TV Listings (xmltv)","Done: Addon Path Added")
-    xbmc.executebuiltin('Container.Refresh')
+    if plugin.get_setting("refresh") == 'true':
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Done: Added")
+
 
 @plugin.route('/add_defaults/<addon>/<path>/<addon_name>')
 def add_defaults(addon,path,addon_name):
