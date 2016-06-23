@@ -1993,6 +1993,8 @@ def browse_addons():
     c = conn.cursor()
     c.execute("SELECT addon,path FROM addon_paths")
     addon_paths = [row["addon"] for row in c]
+    c.execute("SELECT path,name FROM addon_paths")
+    paths = [row["path"] for row in c]
 
     addons = response["addons"]
     addon_ids = [a["addonid"] for a in addons]
@@ -2009,6 +2011,13 @@ def browse_addons():
             item = {'label':label,
             'path':plugin.url_for('browse_path', addon=addon_id, name=name, path=path),
             'thumbnail':icon}
+            if path not in paths:
+                url = plugin.url_for('add_addon_channels', addon=addon_id, path=path, path_name=name.encode("utf8"))
+                label = '[COLOR red][B]Add Folder[/B][/COLOR]'
+            else:
+                url = plugin.url_for('remove_addon_path', path=path)
+                label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+            item['context_menu'] = [(label, actions.update_view(url))]
             items.append(item)
 
     sorted_items = sorted(items, key=lambda item: remove_formatting(item['label']).lower())
@@ -2090,14 +2099,13 @@ def browse_path(addon,name,path):
         'path':plugin.url_for('browse_path', addon=addon, name=dir.encode("utf8"), path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
-        default_url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"))
-        default_label = '[COLOR red][B]Add Folder[/B][/COLOR]'
-
-        remove_url = plugin.url_for('remove_addon_path', path=path)
-        remove_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
-        item['context_menu'] = [(default_label, actions.update_view(default_url)),
-
-        (remove_label, actions.update_view(remove_url))]
+        if path not in paths:
+            url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"))
+            label = '[COLOR red][B]Add Folder[/B][/COLOR]'
+        else:
+            url = plugin.url_for('remove_addon_path', path=path)
+            label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+        item['context_menu'] = [(label, actions.update_view(url))]
         items.append(item)
     for path in sorted(links):
         label = links[path]
