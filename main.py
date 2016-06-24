@@ -49,6 +49,7 @@ def get_tvdb_id(name):
         tvdb_id = tvdb_match.group(1)
     return tvdb_id
 
+
 @plugin.route('/clear_addon_paths')
 def clear_addon_paths():
     conn = get_conn()
@@ -69,6 +70,7 @@ def clear_addons():
     create_database_tables()
     dialog = xbmcgui.Dialog()
     dialog.notification("TV Listings (xmltv)","Done: Clear Addons")
+
 
 @plugin.route('/drop_channels')
 def drop_channels():
@@ -1073,17 +1075,6 @@ def local_time(ttime,year,month,day):
         loc_dt = utc2local(utc_dt)
         ttime = "%02d:%02d" % (loc_dt.hour,loc_dt.minute)
     return ttime
-
-
-
-def get_url(url):
-    headers = {'user-agent': 'Mozilla/5.0 (BB10; Touch) AppleWebKit/537.10+ (KHTML, like Gecko) Version/10.0.9.2372 Mobile Safari/537.10+'}
-    try:
-        r = requests.get(url,headers=headers)
-        html = HTMLParser.HTMLParser().unescape(r.content.decode('utf-8'))
-        return html
-    except:
-        return ''
 
 
 
