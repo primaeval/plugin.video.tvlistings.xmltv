@@ -1444,13 +1444,13 @@ def now_next_time(seconds,when):
         c.execute('SELECT * FROM channels')
     else:
         c.execute('SELECT * FROM channels WHERE path IS NOT ""')
-    channels = [(row['id'], row['name'], row['icon']) for row in c]
+    channels = [(row['id'], row['name'], row['icon'], row["path"]) for row in c]
 
     now = datetime.fromtimestamp(float(seconds))
     total_seconds = time.mktime(now.timetuple())
 
     items = []
-    for (channel_id, channel_name, img_url) in channels:
+    for (channel_id, channel_name, img_url, path) in channels:
         c.execute('SELECT * FROM remind WHERE channel=? ORDER BY start', [channel_id])
         remind = [row['start'] for row in c]
         c.execute('SELECT * FROM watch WHERE channel=? ORDER BY start', [channel_id])
@@ -1535,7 +1535,15 @@ def now_next_time(seconds,when):
 
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
-
+        context_items = []
+        if path:
+            play_url = plugin.url_for('play_media', path=path)
+            context_items.append(('[COLOR gold]Play[/COLOR]', actions.update_view(play_url)))
+        choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
+        search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
+        context_items.append(('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)))
+        context_items.append(('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url)))
+        item['context_menu'] = context_items
         items.append(item)
 
     if plugin.get_setting('sort_now') == 'true':
@@ -1594,7 +1602,7 @@ def listing(channel_id,channel_name):
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
-    channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+    channels = dict((row['id'], (row['name'], row['icon'], row["path"])) for row in c)
     c.execute('SELECT * FROM remind WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
     remind = [row['start'] for row in c]
     c.execute('SELECT * FROM watch WHERE channel=? ORDER BY start', [channel_id.decode("utf8")])
@@ -1604,7 +1612,7 @@ def listing(channel_id,channel_name):
     last_day = ''
     for row in c:
         channel_id = row['channel']
-        (channel_name, img_url) = channels[channel_id]
+        (channel_name, img_url, path) = channels[channel_id]
         title = row['title']
         sub_title = row['sub_title']
         start = row['start']
@@ -1675,6 +1683,15 @@ def listing(channel_id,channel_name):
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
         item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
+        context_items = []
+        if path:
+            play_url = plugin.url_for('play_media', path=path)
+            context_items.append(('[COLOR gold]Play[/COLOR]', actions.update_view(play_url)))
+        choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
+        search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
+        context_items.append(('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)))
+        context_items.append(('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url)))
+        item['context_menu'] = context_items
         items.append(item)
     c.close()
 
@@ -1688,7 +1705,7 @@ def search(programme_name):
     conn = get_conn()
     c = conn.cursor()
     c.execute('SELECT *, name FROM channels')
-    channels = dict((row['id'], (row['name'], row['icon'])) for row in c)
+    channels = dict((row['id'], (row['name'], row['icon'], row['path'])) for row in c)
     calendar_icon = get_icon_path('calendar')
     c.execute('SELECT * FROM remind ORDER BY channel, start')
     remind = {}
@@ -1708,7 +1725,7 @@ def search(programme_name):
     items = []
     for row in c:
         channel_id = row['channel']
-        (channel_name, img_url) = channels[channel_id]
+        (channel_name, img_url, path) = channels[channel_id]
         title = row['title']
         sub_title = row['sub_title']
         start = row['start']
@@ -1781,6 +1798,15 @@ def search(programme_name):
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['info'] = {'plot':plot, 'season':int(season), 'episode':int(episode), 'genre':categories}
         item['path'] = plugin.url_for('play', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), title=title.encode("utf8"), season=season, episode=episode, start=start, stop=stop)
+        context_items = []
+        if path:
+            play_url = plugin.url_for('play_media', path=path)
+            context_items.append(('[COLOR gold]Play[/COLOR]', actions.update_view(play_url)))
+        choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
+        search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
+        context_items.append(('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)))
+        context_items.append(('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url)))
+        item['context_menu'] = context_items
         items.append(item)
     c.close()
     return items
