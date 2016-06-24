@@ -151,7 +151,7 @@ def channel_list():
             addon_id = row["addon"]
             (addon_name,addon_icon) = get_addon_info(addon_id)
 
-            label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (
+            label = "[COLOR gold][B]%s[/B][/COLOR] [COLOR seagreen][B]%s[/B][/COLOR]" % (
             channel_name,addon_name)
             item = {'label':label,'icon':img_url,'thumbnail':img_url}
             item['path'] = plugin.url_for('play_media',path=path)
@@ -160,9 +160,9 @@ def channel_list():
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
             search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
             item['context_menu'] = [
-            ('[COLOR green]Search[/COLOR]', actions.update_view(search_url)),
+            ('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)),
 
-            ('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
+            ('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
     c.close()
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -190,15 +190,15 @@ def channel_remap():
             (addon_id) = addons[path]
             (addon_name,addon_icon) = get_addon_info(addon_id)
 
-            addon_label = " [COLOR green][B]%s[/B][/COLOR]" % addon_name
+            addon_label = " [COLOR seagreen][B]%s[/B][/COLOR]" % addon_name
             img_url = addon_icon
         else:
             addon_label = ""
 
         if path:
-            label = "[COLOR red][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
+            label = "[COLOR crimson][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
         else:
-            label = "[COLOR yellow][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
+            label = "[COLOR gold][B]%s[/B][/COLOR]%s" % (channel_name,addon_label)
         item = {'label':label,'thumbnail':img_url}
         item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
         items.append(item)
@@ -219,7 +219,7 @@ def channel_remap_addons(channel_id,channel_name):
     addons = [row["addon"] for row in c]
     icon = ''
     item = {
-    'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
+    'label': '[COLOR crimson][B]%s[/B][/COLOR]' % ("Search Addons"),
     'path': plugin.url_for(channel_remap_search, channel_id=channel_id,channel_name=channel_name),
     'thumbnail': get_icon_path('search'),
     'is_playable': False,
@@ -231,7 +231,7 @@ def channel_remap_addons(channel_id,channel_name):
             if addon:
                 icon = addon.getAddonInfo('icon')
                 item = {
-                'label': '[COLOR green][B]%s[/B][/COLOR]' % (remove_formatting(addon.getAddonInfo('name'))),
+                'label': '[COLOR seagreen][B]%s[/B][/COLOR]' % (remove_formatting(addon.getAddonInfo('name'))),
                 'path': plugin.url_for(channel_remap_streams, addon_id=addon_id,channel_id=channel_id,channel_name=channel_name),
                 'thumbnail': icon,
                 'icon': icon,
@@ -267,7 +267,7 @@ def search_addons(channel_name):
         if not addon_name:
             continue
 
-        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (
+        label = "[COLOR gold][B]%s[/B][/COLOR] [COLOR seagreen][B]%s[/B][/COLOR]" % (
         stream_name,addon_name)
         item = {
         'label': label,
@@ -305,11 +305,11 @@ def channel_remap_all(channel_id,channel_name,channel_play):
     items = []
 
     img_url = get_icon_path('search')
-    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR blue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
+    label = "[COLOR gold][B]%s[/B][/COLOR] [COLOR cornflowerblue][B]%s[/B][/COLOR]" % (channel_name, 'All Streams')
     item = {'label':label,'thumbnail':img_url}
     item['path'] = plugin.url_for('channel_remap_addons', channel_id=channel_id, channel_name=channel_name)
     items.append(item)
-    label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
+    label = "[COLOR gold][B]%s[/B][/COLOR] [COLOR white][B]%s[/B][/COLOR]" % (channel_name, 'Reset Channel')
     item = {'label':label,'thumbnail':get_icon_path('settings')}
     item['path'] = plugin.url_for('reset_channel', channel_id=channel_id)
     items.append(item)
@@ -333,9 +333,9 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         if not addon_name:
             continue
         if channel_path == path:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+            label = '[COLOR gold][B]%s[/B][/COLOR] [COLOR crimson][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         else:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+            label = '[COLOR gold][B]%s[/B][/COLOR] [COLOR seagreen][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         item = {
         'label': label,
         'path': plugin.url_for(channel_remap_stream, addon_id=addon_id, channel_id=channel_id, channel_name=channel_name, stream_name=stream_name.encode("utf8")),
@@ -345,12 +345,12 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         }
 
         url = plugin.url_for('play_media', path=path)
-        item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
+        item['context_menu'] = [('[COLOR gold]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     if channel_play == "True":
         if channel_path:
-            item = {'label':"[COLOR yellow]%s[/COLOR] [COLOR red]%s[/COLOR]" % (channel_name,'Play'),
+            item = {'label':"[COLOR gold]%s[/COLOR] [COLOR crimson]%s[/COLOR]" % (channel_name,'Play'),
             'path': plugin.url_for('play_media', path=channel_path),
             'thumbnail':channel_icon,
             'is_playable':False}
@@ -381,9 +381,9 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
     for path in sorted(streams):
         (stream_name,icon) = streams[path]
         if channel_path == path:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR red][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+            label = '[COLOR gold][B]%s[/B][/COLOR] [COLOR crimson][B]%s[/B][/COLOR]' % (stream_name, addon_name)
         else:
-            label = '[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]' % (stream_name, addon_name)
+            label = '[COLOR gold][B]%s[/B][/COLOR] [COLOR seagreen][B]%s[/B][/COLOR]' % (stream_name, addon_name)
 
         item = {
         'label': label,
@@ -394,7 +394,7 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
         }
 
         url = plugin.url_for('play_media', path=path)
-        item['context_menu'] = [('[COLOR yellow]Play[/COLOR]', actions.update_view(url))]
+        item['context_menu'] = [('[COLOR gold]Play[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -445,9 +445,9 @@ def select_channel(channel_id,channel_name):
     items = []
     for channel in sorted(channels):
         if channel == channel_name:
-            label = "[COLOR red][B]%s[/B][/COLOR]" % (channel)
+            label = "[COLOR crimson][B]%s[/B][/COLOR]" % (channel)
         else:
-            label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel)
+            label = "[COLOR gold][B]%s[/B][/COLOR]" % (channel)
         img_url = ''
         item = {'label':label,'icon':img_url,'thumbnail':img_url,'is_playable': False}
         item['path'] = plugin.url_for('choose_channel', channel_id=channel_name.encode("utf8"), channel=channel.encode("utf8"),
@@ -692,7 +692,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             if season and episode:
                 meta_url = "plugin://plugin.video.meta/tv/play/%s/%s/%s/%s" % (tvdb_id,season,episode,'select')
                 items.append({
-                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%sE%s[/B][/COLOR] [COLOR green][B]Meta episode[/B][/COLOR]' % (title,season,episode),
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR crimson][B]S%sE%s[/B][/COLOR] [COLOR seagreen][B]Meta episode[/B][/COLOR]' % (title,season,episode),
                 'path': meta_url,
                 'thumbnail': meta_icon,
                 'icon': meta_icon,
@@ -701,7 +701,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             if season:
                 meta_url = "plugin://plugin.video.meta/tv/tvdb/%s/%s" % (tvdb_id,season)
                 items.append({
-                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]S%s[/B][/COLOR] [COLOR green][B]Meta season[/B][/COLOR]' % (title,season),
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR crimson][B]S%s[/B][/COLOR] [COLOR seagreen][B]Meta season[/B][/COLOR]' % (title,season),
                 'path': meta_url,
                 'thumbnail': meta_icon,
                 'icon': meta_icon,
@@ -709,7 +709,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                  })
             meta_url = "plugin://plugin.video.meta/tv/tvdb/%s" % (tvdb_id)
             items.append({
-            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
+            'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR seagreen][B]Meta TV search[/B][/COLOR]' % (title),
             'path': meta_url,
             'thumbnail': meta_icon,
             'icon': meta_icon,
@@ -720,7 +720,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             sick_icon =  addon.getAddonInfo('icon')
             if addon:
                 items.append({
-                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR yellow][B]SickRage[/B][/COLOR]' % (title),
+                'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR gold][B]SickRage[/B][/COLOR]' % (title),
                 'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                 'thumbnail': sick_icon,
                 'icon': sick_icon,
@@ -735,7 +735,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             if meta_icon:
                 meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (movie)
                 items.append({
-                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie[/B][/COLOR]' % (title),
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR seagreen][B]Meta movie[/B][/COLOR]' % (title),
                 'path': meta_url,
                 'thumbnail': meta_icon,
                 'icon': meta_icon,
@@ -746,7 +746,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                 couch_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR yellow][B]CouchPotato[/B][/COLOR]' % (title),
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR gold][B]CouchPotato[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.couchpotato_manager/movies/add/?title=%s" % (title),
                     'thumbnail': couch_icon,
                     'icon': couch_icon,
@@ -757,7 +757,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
             if meta_icon:
                 meta_url = "plugin://plugin.video.meta/tv/search_term/%s/1" % (title)
                 items.append({
-                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta TV search[/B][/COLOR]' % (title),
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR seagreen][B]Meta TV search[/B][/COLOR]' % (title),
                 'path': meta_url,
                 'thumbnail': meta_icon,
                 'icon': meta_icon,
@@ -765,7 +765,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                  })
                 meta_url = "plugin://plugin.video.meta/movies/search_term/%s/1" % (title)
                 items.append({
-                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]Meta movie search[/B][/COLOR]' % (title),
+                'label': '[COLOR orange][B]%s[/B][/COLOR] [COLOR seagreen][B]Meta movie search[/B][/COLOR]' % (title),
                 'path': meta_url,
                 'thumbnail': meta_icon,
                 'icon': meta_icon,
@@ -776,7 +776,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
                 sick_icon =  addon.getAddonInfo('icon')
                 if addon:
                     items.append({
-                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR yellow][B]SickRage[/B][/COLOR]' % (title),
+                    'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR gold][B]SickRage[/B][/COLOR]' % (title),
                     'path':"plugin://plugin.video.sickrage?action=addshow&&show_name=%s" % (title),
                     'thumbnail': sick_icon,
                     'icon': sick_icon,
@@ -789,7 +789,7 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
         sf_icon =  addon.getAddonInfo('icon')
         if addon:
             items.append({
-            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR green][B]iSearch[/B][/COLOR]' % (title),
+            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR seagreen][B]iSearch[/B][/COLOR]' % (title),
             'path':"plugin://plugin.program.super.favourites?mode=0&keyword=%s" % (urllib.quote_plus(title)),
             'thumbnail': sf_icon,
             'icon': sf_icon,
@@ -807,14 +807,14 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     clock_icon = get_icon_path('alarm')
     if not int(start) in remind:
         items.append({
-        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Remind[/B][/COLOR]' % (title),
+        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR crimson][B]Remind[/B][/COLOR]' % (title),
         'path':plugin.url_for('remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
         'thumbnail': clock_icon,
         'icon': clock_icon,
         })
     else:
         items.append({
-        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR red][B]Cancel Remind[/B][/COLOR]' % (title),
+        'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR crimson][B]Cancel Remind[/B][/COLOR]' % (title),
         'path':plugin.url_for('cancel_remind', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
         'thumbnail': clock_icon,
         'icon': clock_icon,
@@ -828,14 +828,14 @@ def play(channel_id,channel_name,title,season,episode,start,stop):
     if path:
         if not int(start) in watch:
             items.append({
-            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Watch[/B][/COLOR]' % (title),
+            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR cornflowerblue][B]Watch[/B][/COLOR]' % (title),
             'path':plugin.url_for('watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
             'thumbnail': clock_icon,
             'icon': clock_icon,
             })
         else:
             items.append({
-            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR blue][B]Cancel Watch[/B][/COLOR]' % (title),
+            'label':'[COLOR orange][B]%s[/B][/COLOR] [COLOR cornflowerblue][B]Cancel Watch[/B][/COLOR]' % (title),
             'path':plugin.url_for('cancel_watch', channel_id=channel_id, channel_name=channel_name,title=title, season=season, episode=episode, start=start, stop=stop),
             'thumbnail': clock_icon,
             'icon': clock_icon,
@@ -884,24 +884,24 @@ def channel(channel_id,channel_name):
         addon = row["addon"]
         (addon_name,addon_icon) = get_addon_info(addon)
         if addon_name:
-            label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B] [COLOR white][B]Play[/B][/COLOR]" % (
+            label = "[COLOR gold][B]%s[/B][/COLOR] [COLOR seagreen][B]%s[/B] [COLOR white][B]Play[/B][/COLOR]" % (
             channel_name,addon_name)
             item = {'label':label,'thumbnail':addon_icon}
             item['path'] = plugin.url_for("play_media",path=path)
             item['is_playable'] = False
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
-            item['context_menu'] = [('[COLOR red]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
+            item['context_menu'] = [('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
         else:
             choose = True
     else:
         choose = True
     if choose:
-        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR white][B]Choose Player[/B][/COLOR]" % (channel_name)
+        label = "[COLOR gold][B]%s[/B][/COLOR] [COLOR white][B]Choose Player[/B][/COLOR]" % (channel_name)
         item = {'label':label,'icon':icon,'thumbnail':get_icon_path('search')}
         item['path'] = plugin.url_for('channel_remap_all', channel_id=channel_id, channel_name=channel_name, channel_play=True)
         items.append(item)
-    item = {'label':"[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (channel_name,'Search'),
+    item = {'label':"[COLOR gold][B]%s[/B][/COLOR] [COLOR seagreen][B]%s[/B][/COLOR]" % (channel_name,'Search'),
         'path': plugin.url_for(search_addons,channel_name=channel_name),
         'thumbnail':icon,
         'is_playable':False}
@@ -927,28 +927,28 @@ def addon_streams():
             if addon:
                 icon = addon.getAddonInfo('icon')
                 item = {
-                'label': '[COLOR green][B]%s[/B][/COLOR]' % (remove_formatting(addon.getAddonInfo('name'))),
+                'label': '[COLOR seagreen][B]%s[/B][/COLOR]' % (remove_formatting(addon.getAddonInfo('name'))),
                 'path': plugin.url_for(streams, addon_id=addon_id),
                 'thumbnail': icon,
                 'icon': icon,
                 'is_playable': False,
                 }
                 url = plugin.url_for('addon_streams_to_channels', addon_id=addon_id)
-                item['context_menu'] = [('[COLOR yellow]Set as Channels[/COLOR]', actions.update_view(url))]
+                item['context_menu'] = [('[COLOR gold]Set as Channels[/COLOR]', actions.update_view(url))]
                 items.append(item)
         except:
             pass
     sorted_items = sorted(items, key=lambda item: item['label'].lower())
     items = []
     item = {
-    'label': '[COLOR red][B]%s[/B][/COLOR]' % ("Search Addons"),
+    'label': '[COLOR crimson][B]%s[/B][/COLOR]' % ("Search Addons"),
     'path': plugin.url_for(search_addons, channel_name='none'),
     'thumbnail': get_icon_path('search'),
     'is_playable': False,
     }
     items.append(item)
     item = {
-    'label': '[COLOR yellow][B]%s[/B][/COLOR]' % ("Refresh Addon Shortcuts"),
+    'label': '[COLOR gold][B]%s[/B][/COLOR]' % ("Refresh Addon Shortcuts"),
     'path': plugin.url_for(reload_addon_paths),
     'thumbnail': get_icon_path('settings'),
     'is_playable': False,
@@ -988,7 +988,7 @@ def streams(addon_id):
 
     items = []
 
-    item = {'label':'[COLOR red][B]Use All as Default Shortcuts[/B][/COLOR]',
+    item = {'label':'[COLOR crimson][B]Use All as Default Shortcuts[/B][/COLOR]',
         'path':plugin.url_for('addon_streams_to_channels', addon_id=addon_id),
         'thumbnail':addon_icon,
         'is_playable':False}
@@ -1005,7 +1005,7 @@ def streams(addon_id):
 
         addon_id = row["addon"]
 
-        label = "[COLOR yellow][B]%s[/B][/COLOR] [COLOR green][B]%s[/B][/COLOR]" % (
+        label = "[COLOR gold][B]%s[/B][/COLOR] [COLOR seagreen][B]%s[/B][/COLOR]" % (
         stream_name,addon_name)
         item = {
         'label': label,
@@ -1018,8 +1018,8 @@ def streams(addon_id):
         url = plugin.url_for('play_media', path=path)
 
         item['context_menu'] = [
-        ('[COLOR yellow]Play[/COLOR]', actions.update_view(url)),
-        ('[COLOR red]Set as Default Channel[/COLOR]', actions.update_view(remap_url))]
+        ('[COLOR gold]Play[/COLOR]', actions.update_view(url)),
+        ('[COLOR crimson]Set as Default Channel[/COLOR]', actions.update_view(remap_url))]
         items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -1423,7 +1423,7 @@ def channels():
         channel_id = row['id']
         channel_name = row['name']
         img_url = row['icon']
-        label = "[COLOR yellow][B]%s[/B][/COLOR]" % (channel_name)
+        label = "[COLOR gold][B]%s[/B][/COLOR]" % (channel_name)
         item = {'label':label,'icon':img_url,'thumbnail':img_url}
         item['path'] = plugin.url_for('listing', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"))
         items.append(item)
@@ -1478,9 +1478,9 @@ def now_next_time(seconds,when):
             now_title = "[B]%s[/B]" % now_title
 
         if now_start in watch:
-            now_title_format = "[COLOR blue]%s[/COLOR]" % now_title
+            now_title_format = "[COLOR cornflowerblue]%s[/COLOR]" % now_title
         elif now_start in remind:
-            now_title_format = "[COLOR red]%s[/COLOR]" % now_title
+            now_title_format = "[COLOR crimson]%s[/COLOR]" % now_title
         else:
             now_title_format = "[COLOR orange]%s[/COLOR]" % now_title
 
@@ -1495,9 +1495,9 @@ def now_next_time(seconds,when):
             next_title = c.fetchone()['title']
 
         if next_start in watch:
-            next_title_format = "[COLOR blue][B]%s[/B][/COLOR]" % next_title
+            next_title_format = "[COLOR cornflowerblue][B]%s[/B][/COLOR]" % next_title
         elif next_start in remind:
-            next_title_format = "[COLOR red][B]%s[/B][/COLOR]" % next_title
+            next_title_format = "[COLOR crimson][B]%s[/B][/COLOR]" % next_title
         else:
             next_title_format = "[COLOR white][B]%s[/B][/COLOR]" % next_title
 
@@ -1512,22 +1512,22 @@ def now_next_time(seconds,when):
             after_title = c.fetchone()['title']
 
         if after_start in watch:
-            after_title_format = "[COLOR blue][B]%s[/B][/COLOR]" % after_title
+            after_title_format = "[COLOR cornflowerblue][B]%s[/B][/COLOR]" % after_title
         elif after_start in remind:
-            after_title_format = "[COLOR red][B]%s[/B][/COLOR]" % after_title
+            after_title_format = "[COLOR crimson][B]%s[/B][/COLOR]" % after_title
         else:
             after_title_format = "[COLOR grey][B]%s[/B][/COLOR]" % after_title
 
         if when == "now":
             if  plugin.get_setting('show_channel_name') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s %s %s %s" % \
+                label = "[COLOR gold][B]%s[/B][/COLOR] %s %s %s %s %s %s" % \
                 (channel_name,now,now_title_format,next,next_title_format,after,after_title_format)
             else:
                 label = "%s %s %s %s %s %s" % \
                 (now,now_title_format,next,next_title_format,after,after_title_format)
         else:
             if  plugin.get_setting('show_channel_name') == 'true':
-                label = "[COLOR yellow][B]%s[/B][/COLOR] %s %s %s %s" % \
+                label = "[COLOR gold][B]%s[/B][/COLOR] %s %s %s %s" % \
                 (channel_name,next,next_title_format,after,after_title_format)
             else:
                 label = "%s %s %s %s" % \
@@ -1555,10 +1555,10 @@ def hourly():
     dt = dt.replace(hour=0, minute=0, second=0)
 
     for day in ("Today","Tomorrow"):
-        label = "[COLOR red][B]%s[/B][/COLOR]" % (day)
+        label = "[COLOR crimson][B]%s[/B][/COLOR]" % (day)
         items.append({'label':label,'path':plugin.url_for('hourly'),'thumbnail':get_icon_path('calendar')})
         for hour in range(0,24):
-            label = "[COLOR blue][B]%02d:00[/B][/COLOR]" % (hour)
+            label = "[COLOR cornflowerblue][B]%02d:00[/B][/COLOR]" % (hour)
             total_seconds = str(time.mktime(dt.timetuple()))
             items.append({'label':label,'path':plugin.url_for('now_next_time',seconds=total_seconds, when='now'),'thumbnail':get_icon_path('clock')})
             dt = dt + timedelta(hours=1)
@@ -1647,9 +1647,9 @@ def listing(channel_id,channel_name):
             ttime = "%02d:%02d" % (dt.hour,dt.minute)
 
         if start in watch:
-            title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
+            title_format = "[COLOR cornflowerblue][B]%s[/B][/COLOR]" % title
         elif start in remind:
-            title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
+            title_format = "[COLOR crimson][B]%s[/B][/COLOR]" % title
         else:
             if mode == 'past':
                 title_format = "[COLOR grey][B]%s[/B][/COLOR]" % title
@@ -1659,7 +1659,7 @@ def listing(channel_id,channel_name):
         if mode == 'past':
             channel_format = "[COLOR grey]%s[/COLOR]" % channel_name
         else:
-            channel_format = "[COLOR yellow][B]%s[/B][/COLOR]" % channel_name
+            channel_format = "[COLOR gold][B]%s[/B][/COLOR]" % channel_name
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
@@ -1756,15 +1756,15 @@ def search(programme_name):
             title_format = "[COLOR orange][B]%s[/B][/COLOR]" % title
         if channel_id in remind:
             if start in remind[channel_id]:
-                title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
+                title_format = "[COLOR crimson][B]%s[/B][/COLOR]" % title
         if channel_id in watch:
             if start in watch[channel_id]:
-                title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
+                title_format = "[COLOR cornflowerblue][B]%s[/B][/COLOR]" % title
 
         if mode == 'past':
             channel_format = "[COLOR grey]%s[/COLOR]" % channel_name
         else:
-            channel_format = "[COLOR yellow][B]%s[/B][/COLOR]" % channel_name
+            channel_format = "[COLOR gold][B]%s[/B][/COLOR]" % channel_name
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
@@ -1864,20 +1864,20 @@ def reminders():
         if channel_id in remind:
             if start in remind[channel_id]:
                 if mode == 'past':
-                    title_format = "[COLOR red]%s[/COLOR]" % title
+                    title_format = "[COLOR crimson]%s[/COLOR]" % title
                 else:
-                    title_format = "[COLOR red][B]%s[/B][/COLOR]" % title
+                    title_format = "[COLOR crimson][B]%s[/B][/COLOR]" % title
         if channel_id in watch:
             if start in watch[channel_id]:
                 if mode == 'past':
-                    title_format = "[COLOR blue]%s[/COLOR]" % title
+                    title_format = "[COLOR cornflowerblue]%s[/COLOR]" % title
                 else:
-                    title_format = "[COLOR blue][B]%s[/B][/COLOR]" % title
+                    title_format = "[COLOR cornflowerblue][B]%s[/B][/COLOR]" % title
 
         if mode == 'past':
             channel_format = "[COLOR grey]%s[/COLOR]" % channel_name
         else:
-            channel_format = "[COLOR yellow][B]%s[/B][/COLOR]" % channel_name
+            channel_format = "[COLOR gold][B]%s[/B][/COLOR]" % channel_name
 
         if  plugin.get_setting('show_channel_name') == 'true':
             if plugin.get_setting('show_plot') == 'true':
@@ -1912,7 +1912,7 @@ def nuke():
         'special://profile/addon_data/plugin.video.tvlistings.xmltv'
         )
     dialog = xbmcgui.Dialog()
-    ok = dialog.ok('TV Listings (xmltv)', '[COLOR red][B]Delete Everything in addon_data Folder?![/B][/COLOR]')
+    ok = dialog.ok('TV Listings (xmltv)', '[COLOR crimson][B]Delete Everything in addon_data Folder?![/B][/COLOR]')
     if not ok:
         return
     if os.path.exists( TARGETFOLDER ):
@@ -1961,13 +1961,13 @@ def browse_addon_paths():
         (addon_name,addon_icon) = get_addon_info(addon_id)
         if addon_name:
 
-            label = "[COLOR green][B]%s[/B][/COLOR] [COLOR yellow][B]%s[/B][/COLOR]" % (addon_name,path_name)
+            label = "[COLOR seagreen][B]%s[/B][/COLOR] [COLOR gold][B]%s[/B][/COLOR]" % (addon_name,path_name)
             if addon_path not in paths:
                 folder_url = plugin.url_for('add_addon_channels', addon=addon_id, path=addon_path, path_name=name.encode("utf8"))
-                folder_label = '[COLOR red][B]Add Folder[/B][/COLOR]'
+                folder_label = '[COLOR crimson][B]Add Folder[/B][/COLOR]'
             else:
                 folder_url = plugin.url_for('remove_addon_path', path=addon_path)
-                folder_label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+                folder_label = '[COLOR gold][B]Remove Folder[/B][/COLOR]'
 
             item = {'label':label,
             'path':plugin.url_for('browse_path', addon=addon_id, name=path_name.encode("utf8"), path=addon_path),
@@ -2004,7 +2004,7 @@ def browse_addons():
         (name,icon) = get_addon_info(addon_id)
         if name:
             if addon_id in addon_paths:
-                label = "[COLOR yellow][B]%s[/B][/COLOR]" % name
+                label = "[COLOR gold][B]%s[/B][/COLOR]" % name
             else:
                 label = "[COLOR grey][B]%s[/B][/COLOR]" % name
             item = {'label':label,
@@ -2012,10 +2012,10 @@ def browse_addons():
             'thumbnail':icon}
             if path not in paths:
                 url = plugin.url_for('add_addon_channels', addon=addon_id, path=path, path_name=name.encode("utf8"))
-                label = '[COLOR red][B]Add Folder[/B][/COLOR]'
+                label = '[COLOR crimson][B]Add Folder[/B][/COLOR]'
             else:
                 url = plugin.url_for('remove_addon_path', path=path)
-                label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+                label = '[COLOR gold][B]Remove Folder[/B][/COLOR]'
             item['context_menu'] = [(label, actions.update_view(url))]
             items.append(item)
 
@@ -2072,14 +2072,14 @@ def browse_path(addon,name,path):
         remove_menu = True
 
     if default_menu:
-        item = {'label':'[COLOR red][B]Add Folder[/B][/COLOR]',
+        item = {'label':'[COLOR crimson][B]Add Folder[/B][/COLOR]',
         'path':plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=name),
         'thumbnail':addon_icon,
         'is_playable':False}
         top_items.append(item)
 
     if remove_menu:
-        item = {'label':'[COLOR yellow][B]Remove Folder[/B][/COLOR]',
+        item = {'label':'[COLOR gold][B]Remove Folder[/B][/COLOR]',
         'path':plugin.url_for('remove_addon_path', path=path),
         'thumbnail':addon_icon,
         'is_playable':False}
@@ -2091,7 +2091,7 @@ def browse_path(addon,name,path):
         path = dirs[dir]
         dir = remove_formatting(dir)
         if path in paths:
-            label = "[COLOR yellow][B]%s[/B][/COLOR]" % dir
+            label = "[COLOR gold][B]%s[/B][/COLOR]" % dir
         else:
             label = "[COLOR grey][B]%s[/B][/COLOR]" % dir
         item = {'label':label,
@@ -2100,10 +2100,10 @@ def browse_path(addon,name,path):
         'is_playable':False}
         if path not in paths:
             url = plugin.url_for('add_addon_channels', addon=addon, path=path, path_name=dir.encode("utf8"))
-            label = '[COLOR red][B]Add Folder[/B][/COLOR]'
+            label = '[COLOR crimson][B]Add Folder[/B][/COLOR]'
         else:
             url = plugin.url_for('remove_addon_path', path=path)
-            label = '[COLOR yellow][B]Remove Folder[/B][/COLOR]'
+            label = '[COLOR gold][B]Remove Folder[/B][/COLOR]'
         item['context_menu'] = [(label, actions.update_view(url))]
         items.append(item)
     for path in sorted(links):
@@ -2177,7 +2177,7 @@ def add_defaults(addon,path,addon_name):
 
     for link in sorted(links):
         if addon_name == "True":
-            title = "%s [COLOR green]%s[/COLOR]" % (link,name)
+            title = "%s [COLOR seagreen]%s[/COLOR]" % (link,name)
         else:
             title = link
 
@@ -2198,7 +2198,7 @@ def index():
         'thumbnail':get_icon_path('clock'),
     },
     {
-        'label': '[COLOR blue][B]Hourly[/B][/COLOR]',
+        'label': '[COLOR cornflowerblue][B]Hourly[/B][/COLOR]',
         'path': plugin.url_for('hourly'),
         'thumbnail':get_icon_path('clock'),
     },
@@ -2208,37 +2208,37 @@ def index():
         'thumbnail':get_icon_path('favourites'),
     },
     {
-        'label': '[COLOR red][B]Channel Listings[/B][/COLOR]',
+        'label': '[COLOR crimson][B]Channel Listings[/B][/COLOR]',
         'path': plugin.url_for('channels'),
         'thumbnail':get_icon_path('tv'),
     },
     {
-        'label': '[COLOR yellow][B]Search Programmes[/B][/COLOR]',
+        'label': '[COLOR gold][B]Search Programmes[/B][/COLOR]',
         'path': plugin.url_for('search_dialog'),
         'thumbnail':get_icon_path('search'),
     },
     {
-        'label': '[COLOR blue][B]Reminders[/B][/COLOR]',
+        'label': '[COLOR cornflowerblue][B]Reminders[/B][/COLOR]',
         'path': plugin.url_for('reminders'),
         'thumbnail':get_icon_path('clock'),
     },
     {
-        'label': '[COLOR yellow][B]Channel Player[/B][/COLOR]',
+        'label': '[COLOR gold][B]Channel Player[/B][/COLOR]',
         'path': plugin.url_for('channel_list'),
         'thumbnail':get_icon_path('tv'),
     },
     {
-        'label': '[COLOR red][B]Default Shortcuts[/B][/COLOR]',
+        'label': '[COLOR crimson][B]Default Shortcuts[/B][/COLOR]',
         'path': plugin.url_for('channel_remap'),
         'thumbnail':get_icon_path('magnet'),
     },
     {
-        'label': '[COLOR green][B]Addon Shortcuts[/B][/COLOR]',
+        'label': '[COLOR seagreen][B]Addon Shortcuts[/B][/COLOR]',
         'path': plugin.url_for('addon_streams'),
         'thumbnail':get_icon_path('settings'),
     },
     {
-        'label': '[COLOR yellow][B]Addon Folders[/B][/COLOR]',
+        'label': '[COLOR gold][B]Addon Folders[/B][/COLOR]',
         'path': plugin.url_for('browse_addon_paths'),
         'thumbnail':get_icon_path('settings'),
     },
