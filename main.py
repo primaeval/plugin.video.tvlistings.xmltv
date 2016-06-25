@@ -162,7 +162,7 @@ def channel_list():
             choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
             search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
             item['context_menu'] = [
-            ('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)),
+            ('[COLOR seagreen]Search Channel[/COLOR]', actions.update_view(search_url)),
 
             ('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url))]
             items.append(item)
@@ -347,7 +347,7 @@ def channel_remap_all(channel_id,channel_name,channel_play):
         }
 
         url = plugin.url_for('play_media', path=path)
-        item['context_menu'] = [('[COLOR gold]Play[/COLOR]', actions.update_view(url))]
+        item['context_menu'] = [('[COLOR gold]Play Channel[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     if channel_play == "True":
@@ -396,7 +396,7 @@ def channel_remap_streams(addon_id,channel_id,channel_name):
         }
 
         url = plugin.url_for('play_media', path=path)
-        item['context_menu'] = [('[COLOR gold]Play[/COLOR]', actions.update_view(url))]
+        item['context_menu'] = [('[COLOR gold]Play Channel[/COLOR]', actions.update_view(url))]
         items.append(item)
 
     sorted_items = sorted(items, key=lambda item: item['label'])
@@ -1020,7 +1020,7 @@ def streams(addon_id):
         url = plugin.url_for('play_media', path=path)
 
         item['context_menu'] = [
-        ('[COLOR gold]Play[/COLOR]', actions.update_view(url)),
+        ('[COLOR gold]Play Channel[/COLOR]', actions.update_view(url)),
         ('[COLOR crimson]Set as Default Channel[/COLOR]', actions.update_view(remap_url))]
         items.append(item)
 
@@ -1529,10 +1529,10 @@ def now_next_time(seconds,when):
         context_items = []
         if path:
             play_url = plugin.url_for('play_media', path=path)
-            context_items.append(('[COLOR gold]Play[/COLOR]', actions.update_view(play_url)))
+            context_items.append(('[COLOR gold]Play Channel[/COLOR]', actions.update_view(play_url)))
         choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
         search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
-        context_items.append(('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)))
+        context_items.append(('[COLOR seagreen]Search Channel[/COLOR]', actions.update_view(search_url)))
         context_items.append(('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url)))
         item['context_menu'] = context_items
         items.append(item)
@@ -1677,10 +1677,10 @@ def listing(channel_id,channel_name):
         context_items = []
         if path:
             play_url = plugin.url_for('play_media', path=path)
-            context_items.append(('[COLOR gold]Play[/COLOR]', actions.update_view(play_url)))
+            context_items.append(('[COLOR gold]Play Channel[/COLOR]', actions.update_view(play_url)))
         choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
         search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
-        context_items.append(('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)))
+        context_items.append(('[COLOR seagreen]Search Channel[/COLOR]', actions.update_view(search_url)))
         context_items.append(('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url)))
         item['context_menu'] = context_items
         items.append(item)
@@ -1792,10 +1792,10 @@ def search(programme_name):
         context_items = []
         if path:
             play_url = plugin.url_for('play_media', path=path)
-            context_items.append(('[COLOR gold]Play[/COLOR]', actions.update_view(play_url)))
+            context_items.append(('[COLOR gold]Play Channel[/COLOR]', actions.update_view(play_url)))
         choose_url = plugin.url_for('channel_remap_all', channel_id=channel_id.encode("utf8"), channel_name=channel_name.encode("utf8"), channel_play=True)
         search_url = plugin.url_for(search_addons,channel_name=channel_name.encode("utf8"))
-        context_items.append(('[COLOR seagreen]Search[/COLOR]', actions.update_view(search_url)))
+        context_items.append(('[COLOR seagreen]Search Channel[/COLOR]', actions.update_view(search_url)))
         context_items.append(('[COLOR crimson]Default Shortcut[/COLOR]', actions.update_view(choose_url)))
         item['context_menu'] = context_items
         items.append(item)
