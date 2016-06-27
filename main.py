@@ -103,11 +103,16 @@ def export_channels():
     c = conn.cursor()
 
     c.execute('SELECT id,path FROM channels')
+    channel_ids = {}
     for row in c:
         channel_id = row['id']
+        channel_id = re.sub(r'[:=]',' ',channel_id)
         path = row['path']
+        if channel_id in channel_ids:
+            channel_id = "%s." %  channel_id
+        channel_ids[channel_id] = channel_id
         if not path:
-            path = ''
+            path = 'nothing'
         write_str = "%s=%s\n" % (channel_id,path)
         f.write(write_str.encode("utf8"))
 
@@ -118,11 +123,18 @@ def export_channels():
         write_str = "[%s]\n" % (addon)
         f.write(write_str.encode("utf8"))
         c.execute('SELECT name,path FROM addons WHERE addon=?', [addon])
+        channel_names = {}
         for row in c:
             channel_name = row['name']
+            if channel_name.startswith(' '):
+                continue
+            channel_name = re.sub(r'[:=]',' ',channel_name)
+            if channel_name in channel_names:
+                channel_name = "%s." %  channel_name
+            channel_names[channel_name] = channel_name
             path = row['path']
             if not path:
-                path = ''
+                path = 'nothing'
             write_str = "%s=%s\n" % (channel_name,path)
             f.write(write_str.encode("utf8"))
     dialog = xbmcgui.Dialog()
