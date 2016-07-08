@@ -92,8 +92,14 @@ def clear_channels():
 
 @plugin.route('/export_channels')
 def export_channels():
-    file_name = 'special://profile/addon_data/plugin.video.tvlistings.xmltv/plugin.video.tvlistings.xmltv.ini'
+    folder = plugin.get_setting('export_ini_folder')
+    if not folder:
+        folder = 'special://profile/addon_data/plugin.video.tvlistings.xmltv'
+    file_name = os.path.join(xbmc.translatePath(folder),'plugin.video.tvlistings.xmltv.ini')
     f = xbmcvfs.File(file_name,'w')
+    if not f:
+        dialog = xbmcgui.Dialog()
+        dialog.notification("TV Listings (xmltv)","Error: could not create file")
     write_str = "# WARNING Make a copy of this file.\n# It will be overwritten on the next channel export.\n\n[plugin.video.tvlistings.xmltv]\n"
     f.write(write_str.encode("utf8"))
 
