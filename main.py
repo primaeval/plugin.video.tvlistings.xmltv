@@ -570,9 +570,9 @@ def refresh_reminders():
         conn.close()
     except:
         pass
-    if notify:
-        dialog = xbmcgui.Dialog()
-        dialog.notification("TV Listings (xmltv)","Done: Refresh Reminders")
+    #if notify:
+    #    dialog = xbmcgui.Dialog()
+    #   dialog.notification("TV Listings (xmltv)","Done: Refresh Reminders",sound=False)
 
 
 @plugin.route('/remind/<channel_id>/<channel_name>/<title>/<season>/<episode>/<start>/<stop>')
