@@ -1694,7 +1694,8 @@ def search(programme_name):
             watch[row['channel']] = []
         watch[row['channel']].append(row['start'])
 
-    c.execute("SELECT * FROM programmes WHERE LOWER(title) LIKE LOWER(?) ORDER BY start, channel", ['%'+programme_name.decode("utf8")+'%'])
+    search_string = '%'+programme_name.replace('*','%').decode("utf8")+'%'
+    c.execute("SELECT * FROM programmes WHERE LOWER(title) LIKE LOWER(?) OR LOWER(sub_title) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?) ORDER BY start, channel", [search_string,search_string,search_string])
     last_day = ''
     items = []
     for row in c:
@@ -2153,7 +2154,7 @@ def add_addon_channels(addon,path,path_name):
         label = re.sub('\[.*?\]','',label)
         icon = thumbnails[file].strip("/")
 
-        log(icon)
+        #log(icon)
         conn.execute("INSERT OR REPLACE INTO addons(addon, name, path, icon) VALUES(?, ?, ?, ?)", [addon, label, file, icon])
 
     conn.commit()
